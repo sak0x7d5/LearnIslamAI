@@ -1,4 +1,3 @@
-from networkx import subgraph
 import json
 from pathlib import Path
 from typing import List
@@ -54,7 +53,7 @@ class QuranProcessor(BaseProcessor):
 if __name__ == "__main__":
     from src.core.config import DEFAULT_MODEL_NAME
 
-    processor = QuranProcessor(Path("C:\\Users\\sarim\\PycharmProjects\\IslamAI\\src\\data\\quran\\english\\en-sahih.json"))
+    processor = QuranProcessor(Path("src\\data\\quran\\english\\en-sahih.json"))
     verse_splitter = SentenceTransformersTokenTextSplitter(model_name=DEFAULT_MODEL_NAME)
     docs = processor.process(verse_splitter)
     print(docs[:5])
