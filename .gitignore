@@ -1,0 +1,26 @@
+# Virtual environments
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+
+# Environment variables (secrets)
+.env
+
+# Model / binary files
+*.pkl
+*.faiss
+
+# Optional: large model/data folders
+embeddingModels/
+src/data
+
+# Logs and temp
+*.log
+.tmp/
+.cache/
+
