@@ -52,9 +52,9 @@ class QuranProcessor(BaseProcessor):
 
 if __name__ == "__main__":
     from src.core.config import DEFAULT_MODEL_NAME
+    text_splitter = SentenceTransformersTokenTextSplitter(model_name=DEFAULT_MODEL_NAME)
 
     processor = QuranProcessor(Path("src\\data\\quran\\english\\en-sahih.json"))
-    verse_splitter = SentenceTransformersTokenTextSplitter(model_name=DEFAULT_MODEL_NAME)
-    docs = processor.process(verse_splitter)
+    docs = processor.process(text_splitter)
     print(docs[:5])
     print(f"Processed {len(docs)} documents.")
