@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 from typing import List
 from langchain_core.documents import Document
-from src.parsers.base import BaseProcessor
-from src.core.config import logger
+from parsers.base import BaseProcessor
+from core.config import logger
 from langchain_text_splitters import SentenceTransformersTokenTextSplitter
 
 class HadithProcessor(BaseProcessor):
@@ -32,7 +32,7 @@ class HadithProcessor(BaseProcessor):
             section_detail: dict = section_details[section_idx]
             section_name: str = sections[section_idx] 
 
-            for hadith_idx in range(section_detail["hadithnumber_first"], section_detail["hadithnumber_last"] + 1):
+            for hadith_idx in range(section_detail["hadithnumber_first"], section_detail["hadithnumber_last"]):
                 
                 hadith_data: dict = data["hadiths"][hadith_idx]
                 text = hadith_data["text"]
@@ -42,7 +42,7 @@ class HadithProcessor(BaseProcessor):
                 metadata = {
                     "book_name": book_name,
                     "section_name": section_name,
-                    "hadithnumber": hadith_data.get("hadithnumber", str(hadith_idx)) ,
+                    "hadithnumber": hadith_data.get("hadithnumber", str(hadith_idx + 1)),
                     "arabicnumber": hadith_data.get("arabicnumber", ""),
                     "reference": hadith_data.get("reference", {})
                 }
