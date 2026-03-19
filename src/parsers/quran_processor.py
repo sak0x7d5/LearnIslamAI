@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 from typing import List
 from langchain_core.documents import Document
-from src.parsers.base import BaseProcessor
-from src.core.config import logger
+from parsers.base import BaseProcessor
+from core.config import logger
 from langchain_text_splitters import SentenceTransformersTokenTextSplitter
 
 class QuranProcessor(BaseProcessor):
