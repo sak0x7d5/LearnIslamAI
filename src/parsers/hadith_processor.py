@@ -41,7 +41,8 @@ class HadithProcessor(BaseProcessor):
                     "section": sections[str(reference['book'])],
                     "hadithnumber": hadith_data["hadithnumber"],
                     "arabicnumber": hadith_data.get("arabicnumber"),
-                    "reference": reference
+                    "reference": reference,
+                    "type": "hadith"
                 }
                 if hadith_data.get("grades"):
                     metadata["grades"] = hadith_data["grades"]
@@ -58,9 +59,9 @@ class HadithProcessor(BaseProcessor):
         return chunked_docs
 
 if __name__ == "__main__":
-    from src.core.config import DEFAULT_MODEL_NAME
+    from core.config import DEFAULT_MODEL_NAME
     text_splitter = SentenceTransformersTokenTextSplitter(model_name=DEFAULT_MODEL_NAME)
 
-    processor = HadithProcessor(Path("src/data/hadith/editions/english/eng-bukhari.json"))
+    processor = HadithProcessor(Path("data\\hadith\\editions\\english\\eng-bukhari.json"))
     docs = processor.process(text_splitter)
-    print(docs[:10])
+    print(docs[3604:3604+25])

@@ -24,3 +24,5 @@ src/data
 .tmp/
 .cache/
 
+# Personal
+TODO.md

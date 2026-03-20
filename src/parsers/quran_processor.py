@@ -34,9 +34,10 @@ class QuranProcessor(BaseProcessor):
                 continue
                 
             metadata = {
-                "surah_number": verse_data.get("surah", "") ,
+                "surah_number": verse_data["surah"],
                 "ayah_number": verse_data.get("ayah", str(idx)),
-                "surah_name": verse_data.get("name", "")
+                "surah_name": verse_data["name"],
+                "type": "quran"
             }
             
             docs.append(Document(page_content=verse, metadata=metadata))

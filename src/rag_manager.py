@@ -1,7 +1,7 @@
 from parsers.base import BaseProcessor
 import numpy as np
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 
 from core.config import logger, DEFAULT_MANIFEST, DATA_DIR
 from core.embedding_manager import EmbeddingManager
@@ -83,9 +83,13 @@ class RAGCoordinator:
                 
         logger.info(f"Sync complete. Processed {processed_count} files, skipped {skipped_count} up-to-date files.")
 
-    def ask(self, query: str, top_k: int = 5):
-        """Search and return results."""
-        return self.vector_store.search(query, top_k=top_k)
+    def ask(self, query: str, top_k: int = 5, filter_type: Literal["quran", "hadith"] | None = None):
+        """
+        Search and return results. 
+        Optional filter_type (e.g. 'quran', 'hadith', 'lecture') to search a specific dataset.
+        """
+        filter_dict = {"type": filter_type} if filter_type else None
+        return self.vector_store.search(query, top_k=top_k, filter_dict=filter_dict)
 
 if '__main__' == __name__:
     # Visual test stub

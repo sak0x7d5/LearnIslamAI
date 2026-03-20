@@ -47,10 +47,14 @@ class VectorStoreManager:
             self.vector_store.add_documents(documents)
         self.save_index()
 
-    def search(self, query: str, top_k: int = 5):
-        """Performs similarity search."""
+    def search(self, query: str, top_k: int = 5, filter_dict: dict = None):
+        """Performs similarity search with optional metadata filtering."""
         if not self.vector_store:
             self.load_index()
         if not self.vector_store:
             return []
+            
+        if filter_dict:
+            return self.vector_store.similarity_search(query, k=top_k, filter=filter_dict)
+            
         return self.vector_store.similarity_search(query, k=top_k)
