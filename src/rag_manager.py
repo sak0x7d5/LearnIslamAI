@@ -46,6 +46,11 @@ class RAGCoordinator:
             DATA_DIR.mkdir(parents=True, exist_ok=True)
             return
 
+        # 1. Detect if the embedding model changed
+        if self.manifest_tracker.check_and_update_model():
+            logger.warning("Triggering database wipe due to model change...")
+            self.vector_store.clear_index()
+ 
         logger.info(f"Scanning for documents in target data directories...")
         
         processed_count = 0

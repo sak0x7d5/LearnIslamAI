@@ -38,6 +38,20 @@ class VectorStoreManager:
             self.vector_store.save_local(self.index_path)
             logger.info(f"Saved FAISS index to {self.index_path}")
 
+    def clear_index(self):
+        """Deletes the vector store from memory and disk."""
+        import shutil
+        from pathlib import Path
+        
+        self.vector_store = None
+        path = Path(self.index_path)
+        if path.exists() and path.is_dir():
+            try:
+                shutil.rmtree(path)
+                logger.info(f"Cleared FAISS index directory at {self.index_path}")
+            except Exception as e:
+                logger.error(f"Failed to clear FAISS index: {e}")
+
     def add_documents(self, documents):
         """Adds LangChain documents to the vector store."""
         embeddings = self.embed_mgr.load_embedding_model()

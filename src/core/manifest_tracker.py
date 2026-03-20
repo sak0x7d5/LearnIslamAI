@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional
-from core.config import logger, DEFAULT_MANIFEST
+from core.config import logger, DEFAULT_MANIFEST, DEFAULT_MODEL_NAME
 
 class ManifestTracker:
     """
@@ -12,9 +12,29 @@ class ManifestTracker:
     """
     def __init__(self, manifest_path: Path | None = None, initial_data: Dict[str, Any] | None = None):
         self.manifest_path = Path(manifest_path or DEFAULT_MANIFEST)
-        # We track embedded files in a 'files' dictionary.
-        self.initial_data = initial_data or {"files": {}}  
+        # Track active embedding model and embedded files.
+        self.initial_data = initial_data or {
+            "active_embedding_model": DEFAULT_MODEL_NAME,
+            "files": {}
+        }
         self._ensure_manifest()
+
+    def check_and_update_model(self) -> bool:
+        """
+        Checks if the currently active embedding model matches the manifest.
+        Returns True if the model changed (meaning FAISS needs a wipe), False if it is the same.
+        """
+        manifest = self.load_manifest()
+        stored_model = manifest.get("active_embedding_model")
+        
+        if stored_model != DEFAULT_MODEL_NAME:
+            logger.warning(f"Embedding model changed from '{stored_model}' to '{DEFAULT_MODEL_NAME}'. A full re-embed is required.")
+            # Update manifest to new model and completely wipe the files record
+            manifest["active_embedding_model"] = DEFAULT_MODEL_NAME
+            manifest["files"] = {}
+            self.save_manifest(manifest)
+            return True
+        return False
 
     def _ensure_manifest(self) -> None:
         """

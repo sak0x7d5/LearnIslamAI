@@ -36,7 +36,7 @@ class QuranProcessor(BaseProcessor):
             metadata = {
                 "surah_number": verse_data["surah"],
                 "ayah_number": verse_data.get("ayah", str(idx)),
-                "surah_name": verse_data["name"],
+                "surah_name": verse_data.get('name', ''),
                 "type": "quran"
             }
             
