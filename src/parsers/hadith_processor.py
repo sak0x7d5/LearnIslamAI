@@ -25,26 +25,23 @@ class HadithProcessor(BaseProcessor):
 
         book_metadata: dict = data["metadata"]
         sections: dict = book_metadata["sections"]
-        section_details: dict = book_metadata["section_details"] 
-        book_name: str = book_metadata["name"]
+        name: str = book_metadata["name"]
     
-        for section_idx in section_details.keys():
-            section_detail: dict = section_details[section_idx]
-            section_name: str = sections[section_idx] 
-
-            for hadith_idx in range(section_detail["hadithnumber_first"], section_detail["hadithnumber_last"]):
+        for hadith_data in data['hadiths']:
                 
-                hadith_data: dict = data["hadiths"][hadith_idx]
                 text = hadith_data["text"]
+
                 if not text.strip():
+                    logger.warning(f'Blank hadith: {hadith_data}\n\nBook name: {name}')
                     continue
-                    
+
+                reference = hadith_data['reference']
                 metadata = {
-                    "book_name": book_name,
-                    "section_name": section_name,
-                    "hadithnumber": hadith_data.get("hadithnumber", str(hadith_idx + 1)),
-                    "arabicnumber": hadith_data.get("arabicnumber", ""),
-                    "reference": hadith_data.get("reference", {})
+                    "name": name,
+                    "section": sections[str(reference['book'])],
+                    "hadithnumber": hadith_data["hadithnumber"],
+                    "arabicnumber": hadith_data.get("arabicnumber"),
+                    "reference": reference
                 }
                 if hadith_data.get("grades"):
                     metadata["grades"] = hadith_data["grades"]
