@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Any, Dict, List, Protocol
 from langchain_community.vectorstores import FAISS
-from core.config import logger
+from core.config import logger, DEFAULT_MODEL_INSTRUCTION
 from core.embedding_manager import EmbeddingManager
 
 class VectorIndexProtocol(Protocol):
@@ -54,10 +54,15 @@ class VectorStoreManager:
 
     def add_documents(self, documents):
         """Adds LangChain documents to the vector store."""
+        if self.vector_store is None:
+            self.load_index() # Ensure we load existing data first
+            
         embeddings = self.embed_mgr.load_embedding_model()
         if self.vector_store is None:
+            logger.info(f"Creating new FAISS index for {self.index_path}...")
             self.vector_store = FAISS.from_documents(documents, embeddings)
         else:
+            logger.info(f"Appending {len(documents)} documents to FAISS index at {self.index_path}...")
             self.vector_store.add_documents(documents)
         self.save_index()
 
@@ -67,8 +72,9 @@ class VectorStoreManager:
             self.load_index()
         if not self.vector_store:
             return []
-            
-        if filter_dict:
-            return self.vector_store.similarity_search(query, k=top_k, filter=filter_dict)
-            
-        return self.vector_store.similarity_search(query, k=top_k)
+        
+        logger.info(f"Searching for '{query}' in vector store...")
+        # Restore the instruction for BGE model
+        instruction_query = DEFAULT_MODEL_INSTRUCTION + query
+        return self.vector_store.similarity_search(query, k=top_k, filter=filter_dict)
+        

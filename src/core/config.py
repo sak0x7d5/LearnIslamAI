@@ -22,9 +22,12 @@ formatter = colorlog.ColoredFormatter(
         'CRITICAL': 'red,bg_white',
     }
 )
+
 handler.setFormatter(formatter)
 logger = colorlog.getLogger("IslamAI")
-logger.addHandler(handler)
+logger.propagate = False
+if not logger.handlers:
+    logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 # -------------------------------------------------------------------
@@ -33,7 +36,8 @@ logger.setLevel(logging.INFO)
 BASE_DIR = Path.cwd()
 SRC_DIR = BASE_DIR / "src"
 DATA_DIR = SRC_DIR / "data"
-
+QURAN_ENG_DIR = DATA_DIR / "quran" / "english"
+HADITH_ENG_DIR = DATA_DIR / "hadith" / "editions" / "english"
 # -------------------------------------------------------------------
 # Embedding Configuration
 # -------------------------------------------------------------------
@@ -41,8 +45,16 @@ DEFAULT_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"
 DEFAULT_MODEL_KWARGS: Dict[str, Any] = {"device": "cpu"}
 DEFAULT_ENCODE_KWARGS: Dict[str, Any] = {"normalize_embeddings": True}
 DEFAULT_CACHE_DIR: Path = BASE_DIR / "embeddingModels"
+DEFAULT_MODEL_INSTRUCTION: str = "Represent this sentence for searching relevant passages: "
 
 # -------------------------------------------------------------------
 # Manifest Configuration
 # -------------------------------------------------------------------
 DEFAULT_MANIFEST = DATA_DIR / "manifest.json"
+
+# -------------------------------------------------------------------
+# Vector Store Configuration
+# -------------------------------------------------------------------
+DEFAULT_INDEX_DIR = BASE_DIR / "faiss_index"
+QURAN_INDEX_PATH = DEFAULT_INDEX_DIR / "quran"
+HADITH_INDEX_PATH = DEFAULT_INDEX_DIR / "hadith"
