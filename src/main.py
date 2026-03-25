@@ -21,6 +21,10 @@ def main():
     while True:
         try:
             user_input = input("\nAsk a question about Islam: ")
+            filter = input("where to search? 'hadith' or 'quran': ")
+            if filter not in ['hadith', 'quran']:
+                print("Invalid filter. Please try again.")
+                continue
             if user_input.lower() in ['exit', 'quit']:
                 break
             
@@ -28,8 +32,9 @@ def main():
                 continue
 
             # Query the RAG system
-            response = coordinator.ask(user_input)
-            print(f"\nResponse:\n{response}")
+            response = coordinator.ask(user_input, filter_type=filter)
+            for i, doc in enumerate(response):
+                print(f'{i+1}.\n{doc.page_content}\nMetadata: {doc.metadata}\n')
             
         except KeyboardInterrupt:
             print("\nExiting...")
