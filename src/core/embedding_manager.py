@@ -61,7 +61,7 @@ class EmbeddingManager:
                 model_name=self.model_name,
                 model_kwargs=self.model_kwargs,
                 encode_kwargs=self.encode_kwargs,
-                cache_folder=str(self.cache_dir) # cache_dir mapping
+                cache_folder=str(self.cache_dir), # cache_dir mapping,
             )
         return self._embeddings
 

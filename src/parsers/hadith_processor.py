@@ -7,7 +7,7 @@ from core.config import logger
 from langchain_text_splitters import SentenceTransformersTokenTextSplitter
 
 class HadithProcessor(BaseProcessor):
-    def process(self, text_splitter: SentenceTransformersTokenTextSplitter) -> List[Document]:
+    def to_chunks(self, text_splitter: SentenceTransformersTokenTextSplitter) -> List[Document]:
         """
         Process Hadith JSON file.
         Returns chunked Document objects.
@@ -27,7 +27,7 @@ class HadithProcessor(BaseProcessor):
         sections: dict = book_metadata["sections"]
         name: str = book_metadata["name"]
     
-        for hadith_data in data['hadiths']:
+        for i, hadith_data in enumerate(data['hadiths']):
                 
                 text = hadith_data["text"]
 
@@ -42,7 +42,9 @@ class HadithProcessor(BaseProcessor):
                     "hadithnumber": hadith_data["hadithnumber"],
                     "arabicnumber": hadith_data.get("arabicnumber"),
                     "reference": reference,
-                    "type": "hadith"
+                    "type": "hadith",
+                    "source_file": str(self.file_path),
+                    "array_index": i
                 }
                 if hadith_data.get("grades"):
                     metadata["grades"] = hadith_data["grades"]
@@ -63,5 +65,5 @@ if __name__ == "__main__":
     text_splitter = SentenceTransformersTokenTextSplitter(model_name=DEFAULT_MODEL_NAME)
 
     processor = HadithProcessor(Path("data\\hadith\\editions\\english\\eng-bukhari.json"))
-    docs = processor.process(text_splitter)
+    docs = processor.to_chunks(text_splitter)
     print(docs[3604:3604+25])

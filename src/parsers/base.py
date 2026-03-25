@@ -11,7 +11,7 @@ class BaseProcessor(ABC):
         self.file_path = Path(file_path)
 
     @abstractmethod
-    def process(self, text_splitter) -> List[Document]:
+    def to_chunks(self, text_splitter) -> List[Document]:
         """
         Reads the data file, extracts the text and metadata, 
         and splits it into chunks using the provided text_splitter.

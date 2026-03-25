@@ -7,7 +7,7 @@ from core.config import logger
 from langchain_text_splitters import SentenceTransformersTokenTextSplitter
 
 class QuranProcessor(BaseProcessor):
-    def process(self, verse_splitter: SentenceTransformersTokenTextSplitter) -> List[Document]:
+    def to_chunks(self, verse_splitter: SentenceTransformersTokenTextSplitter) -> List[Document]:
         """
         Process Quran JSON file.
         Returns chunked Document objects.
@@ -37,7 +37,9 @@ class QuranProcessor(BaseProcessor):
                 "surah_number": verse_data["surah"],
                 "ayah_number": verse_data.get("ayah", str(idx)),
                 "surah_name": verse_data.get('name', ''),
-                "type": "quran"
+                "type": "quran",
+                "source_file": str(self.file_path),
+                "json_key": str(idx)
             }
             
             docs.append(Document(page_content=verse, metadata=metadata))
@@ -56,6 +58,6 @@ if __name__ == "__main__":
     text_splitter = SentenceTransformersTokenTextSplitter(model_name=DEFAULT_MODEL_NAME)
 
     processor = QuranProcessor(Path("src\\data\\quran\\english\\en-sahih.json"))
-    docs = processor.process(text_splitter)
+    docs = processor.to_chunk(text_splitter)
     print(docs[:5])
     print(f"Processed {len(docs)} documents.")
