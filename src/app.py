@@ -10,6 +10,18 @@ if src_path not in sys.path:
     sys.path.append(src_path)
 
 
+@cl.set_starters
+async def set_starters():
+    return [
+        cl.Starter(
+            label="Sahabi with doubled testimony & Quran compilation",
+            message="Which Companion of the Prophet ﷺ had his testimony counted as equal to two witnesses, and how did this unique distinction later play a role during the compilation of the Qur'an?",
+            icon="/public/quran_icon.svg",
+        ),
+    ]
+
+
+
 @cl.on_chat_start
 async def start():
     """Initializes the chat session and syncs the knowledge base."""
@@ -22,25 +34,20 @@ async def start():
             await cl.make_async(coordinator.sync_documents)()
             step.output = "Knowledge base is up to date and ready."
 
-    await cl.Message(
-        content="Assalam-o-Alaikum! I am IslamAI, your scholarly assistant. "
-                "I can help you with questions about the Quran and Hadith. "
-                "How can I assist you today?"
-    ).send()
-
 
 @cl.on_message
 async def main(message: cl.Message):
-    """Handles incoming messages by streaming the LangGraph response token by token."""
+    """Handles incoming messages by streaming the LangGraph response."""
     messages = cl.user_session.get("messages")
     messages.append(HumanMessage(content=message.content))
 
-    # The streaming response message — tokens will be appended here
+    # Streaming response (for thinking / intermediate steps)
     response_msg = cl.Message(content="")
     await response_msg.send()
 
-    # Track open tool steps so we can close them properly
     tool_steps: dict[str, cl.Step] = {}
+
+    final_answer = ""   # ← We will collect the full final answer here
 
     async for event in graph.astream_events(
         {"messages": messages},
@@ -49,19 +56,20 @@ async def main(message: cl.Message):
         kind = event["event"]
         name = event.get("name", "")
 
-        # --- Token streaming from the LLM ---
         if kind == "on_chat_model_stream":
             chunk = event["data"].get("chunk")
             if chunk and chunk.content:
-                # Only stream text content, not tool-call chunks
                 if isinstance(chunk.content, str):
                     await response_msg.stream_token(chunk.content)
+                    final_answer += chunk.content
                 elif isinstance(chunk.content, list):
                     for part in chunk.content:
                         if isinstance(part, dict) and part.get("type") == "text":
-                            await response_msg.stream_token(part["text"])
+                            text = part["text"]
+                            await response_msg.stream_token(text)
+                            final_answer += text
 
-        # --- Tool call starts ---
+        # Tool handling (same as before)
         elif kind == "on_tool_start":
             tool_input = event["data"].get("input", {})
             step = cl.Step(name=f"🔍 {name}", type="tool")
@@ -69,7 +77,6 @@ async def main(message: cl.Message):
             step.input = str(tool_input)
             tool_steps[event["run_id"]] = step
 
-        # --- Tool call ends ---
         elif kind == "on_tool_end":
             run_id = event["run_id"]
             if run_id in tool_steps:
@@ -78,9 +85,9 @@ async def main(message: cl.Message):
                 step.output = str(output)
                 await step.__aexit__(None, None, None)
 
-    # Finalize the response message
+    # Finalize the streaming message
     await response_msg.update()
 
-    # Persist the full message history from the final graph state
+    # Update session history with the final graph state
     final_state = await graph.ainvoke({"messages": messages})
     cl.user_session.set("messages", final_state["messages"])
