@@ -1,0 +1,49 @@
+/* ============================================================
+   IslamAI — Custom Citation Styles
+   ============================================================ */
+
+/* --- Quran Ayah Block --- */
+.quran {
+    display: block;
+    margin: 14px 0;
+    padding: 14px 18px 14px 22px;
+    border-left: 4px solid #4CAF77;
+    border-radius: 6px;
+    background: linear-gradient(135deg, rgba(76, 175, 119, 0.08), rgba(76, 175, 119, 0.03));
+    font-style: italic;
+    color: inherit;
+}
+
+.quran::before {
+    content: "📖 Quran";
+    display: block;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #4CAF77;
+    margin-bottom: 6px;
+}
+
+/* --- Hadith Block --- */
+.hadith {
+    display: block;
+    margin: 14px 0;
+    padding: 14px 18px 14px 22px;
+    border-left: 4px solid #7B9ED9;
+    border-radius: 6px;
+    background: linear-gradient(135deg, rgba(123, 158, 217, 0.08), rgba(123, 158, 217, 0.03));
+    color: inherit;
+}
+
+.hadith::before {
+    content: "📜 Hadith";
+    display: block;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7B9ED9;
+    margin-bottom: 6px;
+}
