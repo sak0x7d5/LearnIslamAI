@@ -1,5 +1,5 @@
 import chainlit as cl
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from core.graph import graph, coordinator
 import sys
 from pathlib import Path
@@ -19,7 +19,6 @@ async def set_starters():
             icon="/public/quran_icon.svg",
         ),
     ]
-
 
 
 @cl.on_chat_start
@@ -72,7 +71,7 @@ async def main(message: cl.Message):
         # Tool handling (same as before)
         elif kind == "on_tool_start":
             tool_input = event["data"].get("input", {})
-            step = cl.Step(name=f"🔍 {name}", type="tool")
+            step = cl.Step(name=f" {name}", type="tool")
             await step.__aenter__()
             step.input = str(tool_input)
             tool_steps[event["run_id"]] = step
@@ -88,6 +87,6 @@ async def main(message: cl.Message):
     # Finalize the streaming message
     await response_msg.update()
 
-    # Update session history with the final graph state
-    final_state = await graph.ainvoke({"messages": messages})
-    cl.user_session.set("messages", final_state["messages"])
+    # Update session history with the AI response
+    messages.append(AIMessage(content=final_answer))
+    cl.user_session.set("messages", messages)
