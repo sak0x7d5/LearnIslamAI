@@ -109,11 +109,11 @@ After retrieving results:
 - Synthesize a clear, respectful answer.
 
 IMPORTANT — HTML Formatting Rules:
-When quoting from the Quran, wrap the citation in exactly this HTML:
-<div class="quran">Surah Name (X:Y): "quoted text here."</div>
+When quoting from the Quran, use EXACTLY this structure:
+<div class="quran"><span class="citation-text">"quoted text here."</span><div class="citation-meta"><span class="citation-meta-item">Surah Name</span><span class="citation-meta-sep">·</span><span class="citation-meta-item">Chapter X, Verse Y</span></div></div>
 
-When quoting from a Hadith, wrap it in exactly this HTML:
-<div class="hadith">Narrator – Collection (Book X, Hadith Y): "quoted text here."</div>
+When quoting from a Hadith, use EXACTLY this structure:
+<div class="hadith"><span class="citation-text">"quoted text here."</span><div class="citation-meta"><span class="citation-meta-item">Collection Name</span><span class="citation-meta-sep">·</span><span class="citation-meta-item">HADITH Y</span><span class="citation-meta-sep">·</span><span class="citation-meta-item">GRADINGS IF AVAILABLE</span></div></div>
 
 Only wrap direct citations. Do NOT wrap your own commentary in these tags.
 Use these tags every time you cite a verse or hadith — do not skip them.
