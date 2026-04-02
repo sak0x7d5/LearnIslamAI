@@ -33,28 +33,35 @@ logger.setLevel(logging.INFO)
 # -------------------------------------------------------------------
 # Path Configuration
 # -------------------------------------------------------------------
-BASE_DIR = Path.cwd()
-SRC_DIR = BASE_DIR / "src"
+# Project Root is two levels up from src/core/config.py
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+SRC_DIR = ROOT_DIR / "src"
+
+# Data directory for raw sources and the chat database
 DATA_DIR = SRC_DIR / "data"
 QURAN_ENG_DIR = DATA_DIR / "quran" / "english"
-HADITH_ENG_DIR = DATA_DIR / "hadith" / "editions" / "english"
+HADITH_ENG_DIR = DATA_DIR / "hadith" / "english"
+
+# Database & Manifest
+DB_PATH = DATA_DIR / "chat_history.db"
+DB_URL = f"sqlite+aiosqlite:///{DB_PATH.as_posix()}"
+DEFAULT_MANIFEST = DATA_DIR / "manifest.json"
+
+# -------------------------------------------------------------------
+# Models / Index Configuration
+# -------------------------------------------------------------------
+MODELS_DIR = ROOT_DIR / "models"
+DEFAULT_CACHE_DIR: Path = MODELS_DIR / "embedding_models"
+DEFAULT_INDEX_DIR = MODELS_DIR / "vector_indices"
+
+# Specific indices
+QURAN_INDEX_PATH = DEFAULT_INDEX_DIR / "quran"
+HADITH_INDEX_PATH = DEFAULT_INDEX_DIR / "hadith"
+
 # -------------------------------------------------------------------
 # Embedding Configuration
 # -------------------------------------------------------------------
 DEFAULT_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"
 DEFAULT_MODEL_KWARGS: Dict[str, Any] = {"device": "cpu"}
 DEFAULT_ENCODE_KWARGS: Dict[str, Any] = {"normalize_embeddings": True}
-DEFAULT_CACHE_DIR: Path = BASE_DIR / "embeddingModels"
 DEFAULT_MODEL_INSTRUCTION: str = "Represent this sentence for searching relevant passages: "
-
-# -------------------------------------------------------------------
-# Manifest Configuration
-# -------------------------------------------------------------------
-DEFAULT_MANIFEST = DATA_DIR / "manifest.json"
-
-# -------------------------------------------------------------------
-# Vector Store Configuration
-# -------------------------------------------------------------------
-DEFAULT_INDEX_DIR = BASE_DIR / "faiss_index"
-QURAN_INDEX_PATH = DEFAULT_INDEX_DIR / "quran"
-HADITH_INDEX_PATH = DEFAULT_INDEX_DIR / "hadith"

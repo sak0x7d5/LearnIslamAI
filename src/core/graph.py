@@ -11,27 +11,13 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 
-# Ensure the parent directory is in the path to import rag_manager
-base_path = Path(__file__).resolve().parent.parent
-if str(base_path) not in sys.path:
-    sys.path.append(str(base_path))
-
-try:
-    from rag_manager import RAGCoordinator
-except ImportError as e:
-    print(f"Error importing RAGCoordinator: {e}")
-    RAGCoordinator = None
-
-
-load_dotenv()
+from core.coordinator import RAGCoordinator
+from core.config import logger
 
 # Initialize the RAG Coordinator to be used by tools
-# Ideally, this should be passed around or initialized globally for the app,
-# but for the graph logic directly, we instantiate it here.
-if RAGCoordinator:
-    coordinator = RAGCoordinator()
-else:
-    coordinator = None
+# Globally accessible for the graph and the app
+coordinator = RAGCoordinator()
+load_dotenv()
 
 
 # 1. Define State
@@ -98,11 +84,11 @@ You must stay strictly grounded in the retrieved sources.
 
 When using search tools:
 - Reformulate the user's question into precise, scholar-level search queries.
-- Use authentic Islamic terminology (e.g., "sadaqa", "reward for lawful act", "sexual intercourse with wife", "fulfilling desire lawfully", "Abu Dharr", "Sahih Muslim").
-- Prefer specific Hadith phrasing over general words like "sex", "intimacy", "worship", or "charity".
+- Use authentic Islamic terminology (e.g., "sadaqa", "reward for lawful act", "fasting rulings", "repentance conditions", "Abu Dharr").
+- Prefer specific Hadith phrasing over broad terms such as “commercial dealings,” “travel rulings,” “lawful food,” or “repentance.”
 - Break complex questions into 2–3 targeted searches if needed.
 - Do NOT copy the user's words verbatim.
-- Always prioritize exact or near-exact matches from Sahih Bukhari, Sahih Muslim, and other major collections.
+- Always prioritize exact or near-exact matches using distinctive Hadith wording, key phrases, and narrator names (e.g., “Abu Dharr said…”, “the Messenger of Allah said…”), and then verify their source from major collections such as Sahih Bukhari and Sahih Muslim.
 
 After retrieving results:
 - Critically evaluate which ones are relevant.

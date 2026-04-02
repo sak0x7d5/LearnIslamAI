@@ -16,8 +16,11 @@ __pycache__/
 *.faiss
 
 # Optional: large model/data folders
-embeddingModels/
-src/data
+models/
+src/data/chat_history.db
+!src/data/hadith/
+!src/data/quran/
+!src/data/manifest.json
 
 # Logs and temp
 *.log
@@ -26,5 +29,5 @@ src/data
 
 # Personal
 TODO.md
-
-test_llama_cpp.py
+PROJECT_IDEAS.md
+test_llama_cpp.pymodels/
