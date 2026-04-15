@@ -41,6 +41,7 @@ SRC_DIR = ROOT_DIR / "src"
 DATA_DIR = SRC_DIR / "data"
 QURAN_ENG_DIR = DATA_DIR / "quran" / "english"
 HADITH_ENG_DIR = DATA_DIR / "hadith" / "english"
+QURAN_METADATA_SURAH_NAME = DATA_DIR / "quran" / "quran-metadata-surah-name.json"
 
 # Database & Manifest
 DB_PATH = DATA_DIR / "chat_history.db"
