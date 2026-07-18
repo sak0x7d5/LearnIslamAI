@@ -4,6 +4,9 @@
 # Python cache
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
 
 # IDE
 .idea/
@@ -20,14 +23,18 @@ models/
 src/data/chat_history.db
 !src/data/hadith/
 !src/data/quran/
-!src/data/manifest.json
 
 # Logs and temp
 *.log
 .tmp/
 .cache/
 
+# Local release/runtime state
+.uv/
+.test-state/
+.verification-state/
+readiness-report.local.md
+
 # Personal
 TODO.md
 PROJECT_IDEAS.md
-test_llama_cpp.pymodels/

@@ -79,29 +79,30 @@ SCHEMA = [
         "comment" TEXT,
         FOREIGN KEY ("threadId") REFERENCES threads("id") ON DELETE CASCADE
     );
-    """
+    """,
 ]
+
 
 def initialize_database(db_path: str = str(DB_PATH)):
     """Checks and initializes the database schema, including migrations."""
     # Ensure the parent directory exists
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    
+
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        
+
         # 1. Basic Table Initialization
         for statement in SCHEMA:
             cursor.execute(statement)
-            
+
         # 2. Migrations (e.g., autoCollapse column)
         cursor.execute("PRAGMA table_info(steps)")
         columns = [column[1] for column in cursor.fetchall()]
         if "autoCollapse" not in columns:
             print("Migrating database: Adding autoCollapse column to steps table.")
             cursor.execute("ALTER TABLE steps ADD COLUMN autoCollapse BOOLEAN DEFAULT 0")
-            
+
         conn.commit()
         conn.close()
         print(f"Database core initialized at: {db_path}")
