@@ -2,10 +2,16 @@ import chainlit as cl
 from langchain_core.messages import HumanMessage, AIMessage
 from core.graph import graph, coordinator
 from core.database import initialize_database
-from core.config import DB_PATH, ROOT_DIR, DB_URL
+from core.config import DB_PATH, ROOT_DIR, DB_URL, logger
+from core.message_utils import (
+    extract_final_ai_message_text,
+    extract_root_graph_answer,
+    extract_text_content,
+)
 import os
 import secrets
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
+from chainlit.utils import utc_now
 
 # --- Local-First Persistence & Transparency Setup ---
 
@@ -103,7 +109,8 @@ async def main(message: cl.Message):
     # Streaming response placeholder (we will send it only when LLM starts the final answer)
     response_msg: cl.Message | None = None
     tool_steps: dict[str, cl.Step] = {}
-    final_answer = ""
+    streamed_answer = ""
+    terminal_answer = ""
 
     async for event in graph.astream_events(
         {"messages": messages},
@@ -112,46 +119,73 @@ async def main(message: cl.Message):
         kind = event["event"]
         name = event.get("name", "")
 
+        # The completed graph state is authoritative. This fallback is required
+        # when a model/provider does not emit nested token events.
+        root_answer = extract_root_graph_answer(event)
+        if root_answer:
+            terminal_answer = root_answer
+
         if kind == "on_chat_model_stream":
             chunk = event["data"].get("chunk")
-            if chunk and chunk.content:
-                # If this is the first token of the final answer, send the message container
+            text_delta = extract_text_content(getattr(chunk, "content", None))
+            if text_delta:
                 if response_msg is None:
                     response_msg = cl.Message(content="")
                     await response_msg.send()
 
-                if isinstance(chunk.content, str):
-                    await response_msg.stream_token(chunk.content)
-                    final_answer += chunk.content
-                elif isinstance(chunk.content, list):
-                    for part in chunk.content:
-                        if isinstance(part, dict) and part.get("type") == "text":
-                            text = part["text"]
-                            await response_msg.stream_token(text)
-                            final_answer += text
+                await response_msg.stream_token(text_delta)
+                streamed_answer += text_delta
+
+        elif kind == "on_chat_model_end":
+            model_answer = extract_final_ai_message_text(
+                event["data"].get("output")
+            )
+            if model_answer:
+                terminal_answer = model_answer
 
         # Tool handling (improved step names and placement)
         elif kind == "on_tool_start":
             tool_input = event["data"].get("input", {})
             # Cleaner formatting for tool names
             friendly_name = name.replace("search_", "Searching ").replace("_", " ").title()
-            
-            step = cl.Step(name=friendly_name, type="tool")
-            await step.__aenter__()
-            step.input = str(tool_input)
+
+            # Do not keep a Step context manager open while LangGraph continues
+            # emitting events. Chainlit makes new steps children of the currently
+            # open context, which incorrectly nests a second tool call under the
+            # first one. Explicit send/update calls keep every search top-level.
+            step = cl.Step(name=friendly_name, type="tool", parent_id=None)
+            step.start = utc_now()
+            step.input = tool_input
+            await step.send()
             tool_steps[event["run_id"]] = step
 
         elif kind == "on_tool_end":
             run_id = event["run_id"]
             if run_id in tool_steps:
                 step = tool_steps.pop(run_id)
-                output = event["data"].get("output", "")
                 step.output = f"Retrieved relevant data from the {name.split('_')[-1]}."
-                await step.__aexit__(None, None, None)
+                step.end = utc_now()
+                await step.update()
 
-    # Finalize the streaming message if it was ever created
+    # Prefer the complete graph result over accumulated chunks. This prevents
+    # partial or duplicated content when providers expose different event shapes.
+    final_answer = terminal_answer or streamed_answer
+    if terminal_answer:
+        if response_msg is None:
+            response_msg = cl.Message(content=terminal_answer)
+            await response_msg.send()
+        else:
+            response_msg.content = terminal_answer
+
     if response_msg:
         await response_msg.update()
+
+    if not final_answer:
+        logger.error("LangGraph completed without a final assistant answer.")
+        await cl.Message(
+            content="I’m sorry, I couldn’t generate a final answer. Please try again."
+        ).send()
+        return
 
     # Update session history with the AI response
     messages.append(AIMessage(content=final_answer))

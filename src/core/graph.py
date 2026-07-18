@@ -5,6 +5,7 @@ from typing import Annotated, TypedDict
 
 from dotenv import load_dotenv
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, START, END
@@ -72,7 +73,7 @@ llm_with_tools = llm.bind_tools(tools)
 
 
 # 4. Define Nodes
-def chatbot(state: GraphState):
+async def chatbot(state: GraphState, config: RunnableConfig):
     messages = state["messages"]
     
     # Prepend a system message if one doesn't exist
@@ -109,7 +110,9 @@ Be concise, accurate, and pious in tone. Never speculate or add information not 
         messages = [sys_msg] + messages
         
     # Invoke LLM
-    response = llm_with_tools.invoke(messages)
+    # Python 3.10 does not automatically propagate async callback context.
+    # Passing LangGraph's config explicitly keeps model events observable by the UI.
+    response = await llm_with_tools.ainvoke(messages, config=config)
     return {"messages": [response]}
 
 
