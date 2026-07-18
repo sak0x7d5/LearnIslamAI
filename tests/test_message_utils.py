@@ -13,6 +13,7 @@ from core.message_utils import (  # noqa: E402
     extract_final_ai_message_text,
     extract_final_graph_answer,
     extract_root_graph_answer,
+    extract_root_graph_output,
     extract_text_content,
 )
 
@@ -25,9 +26,7 @@ def test_extract_text_content_handles_gemini_blocks():
         {"type": "tool_call", "text": "hidden tool data"},
     ]
 
-    assert extract_text_content(content) == (
-        "Khuzaimah ibn Thabit was the Companion."
-    )
+    assert extract_text_content(content) == ("Khuzaimah ibn Thabit was the Companion.")
 
 
 def test_final_ai_text_rejects_pending_tool_calls():
@@ -59,9 +58,7 @@ def test_extract_final_graph_answer_from_structured_content():
         ]
     }
 
-    assert extract_final_graph_answer(output) == (
-        "Khuzaimah ibn Thabit had the doubled testimony."
-    )
+    assert extract_final_graph_answer(output) == ("Khuzaimah ibn Thabit had the doubled testimony.")
 
 
 def test_root_graph_answer_ignores_nested_events():
@@ -79,6 +76,8 @@ def test_root_graph_answer_ignores_nested_events():
 
     assert extract_root_graph_answer(nested_event) == ""
     assert extract_root_graph_answer(root_event) == "final answer"
+    assert extract_root_graph_output(nested_event) is None
+    assert extract_root_graph_output(root_event) == output
 
 
 def test_final_graph_answer_requires_terminal_ai_message():

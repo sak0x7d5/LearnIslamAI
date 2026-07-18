@@ -12,9 +12,7 @@ def extract_text_content(content: Any) -> str:
     if isinstance(content, str):
         return content
 
-    if not isinstance(content, Sequence) or isinstance(
-        content, (str, bytes, bytearray)
-    ):
+    if not isinstance(content, Sequence) or isinstance(content, (str, bytes, bytearray)):
         return ""
 
     text_parts: list[str] = []
@@ -62,13 +60,20 @@ def extract_final_graph_answer(output: Any) -> str:
 
 def extract_root_graph_answer(event: Any) -> str:
     """Extract an answer only from a root LangGraph v2 completion event."""
+    output = extract_root_graph_output(event)
+    return extract_final_graph_answer(output) if output is not None else ""
+
+
+def extract_root_graph_output(event: Any) -> Mapping[str, Any] | None:
+    """Return the completed root graph state, ignoring nested chain completions."""
     if not isinstance(event, Mapping):
-        return ""
+        return None
     if event.get("event") != "on_chain_end" or event.get("parent_ids"):
-        return ""
+        return None
 
     data = event.get("data")
     if not isinstance(data, Mapping):
-        return ""
+        return None
 
-    return extract_final_graph_answer(data.get("output"))
+    output = data.get("output")
+    return output if isinstance(output, Mapping) else None

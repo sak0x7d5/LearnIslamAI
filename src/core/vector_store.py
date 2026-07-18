@@ -4,15 +4,18 @@ from langchain_community.vectorstores import FAISS
 from core.config import logger, DEFAULT_MODEL_INSTRUCTION
 from core.embedding_manager import EmbeddingManager
 
+
 class VectorIndexProtocol(Protocol):
     def add(self, vector: np.ndarray, metadata: Dict[str, Any]) -> None: ...
     def search(self, query_vector: np.ndarray, top_k: int) -> List[Dict[str, Any]]: ...
 
+
 class VectorStoreManager:
     """
-    Manages the FAISS vector store, handling initialization, 
+    Manages the FAISS vector store, handling initialization,
     saving/loading from disk, and similarity search.
     """
+
     def __init__(self, embedding_manager: EmbeddingManager, index_path: str = "faiss_index"):
         self.embed_mgr = embedding_manager
         self.index_path = index_path
@@ -23,9 +26,7 @@ class VectorStoreManager:
         try:
             embeddings = self.embed_mgr.load_embedding_model()
             self.vector_store = FAISS.load_local(
-                self.index_path, 
-                embeddings,
-                allow_dangerous_deserialization=True
+                self.index_path, embeddings, allow_dangerous_deserialization=True
             )
             logger.info(f"Loaded FAISS index from {self.index_path}")
         except Exception as e:
@@ -42,7 +43,7 @@ class VectorStoreManager:
         """Deletes the vector store from memory and disk."""
         import shutil
         from pathlib import Path
-        
+
         self.vector_store = None
         path = Path(self.index_path)
         if path.exists() and path.is_dir():
@@ -55,14 +56,16 @@ class VectorStoreManager:
     def add_documents(self, documents):
         """Adds LangChain documents to the vector store."""
         if self.vector_store is None:
-            self.load_index() # Ensure we load existing data first
-            
+            self.load_index()  # Ensure we load existing data first
+
         embeddings = self.embed_mgr.load_embedding_model()
         if self.vector_store is None:
             logger.info(f"Creating new FAISS index for {self.index_path}...")
             self.vector_store = FAISS.from_documents(documents, embeddings)
         else:
-            logger.info(f"Appending {len(documents)} documents to FAISS index at {self.index_path}...")
+            logger.info(
+                f"Appending {len(documents)} documents to FAISS index at {self.index_path}..."
+            )
             self.vector_store.add_documents(documents)
         self.save_index()
 
@@ -72,9 +75,11 @@ class VectorStoreManager:
             self.load_index()
         if not self.vector_store:
             return []
-        
-        logger.info(f"Searching for '{query}' in vector store...")
-        # Restore the instruction for BGE model
-        instruction_query = DEFAULT_MODEL_INSTRUCTION + query
-        return self.vector_store.similarity_search(query, k=top_k, filter=filter_dict)
-        
+
+        logger.info("Searching %s vector index.", self.index_path)
+        instruction_query = DEFAULT_MODEL_INSTRUCTION + query.strip()
+        return self.vector_store.similarity_search(
+            instruction_query,
+            k=top_k,
+            filter=filter_dict,
+        )

@@ -1,1 +1,0 @@
-- Which Companion of the Prophet ﷺ had his testimony counted as equal to two witnesses, and how did this unique distinction later play a role during the compilation of the Qur’an?
