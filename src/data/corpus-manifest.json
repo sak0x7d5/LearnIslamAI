@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "corpus_version": "2026.07.18.1",
+  "release_sequence": 1,
+  "generated_at": "2026-07-18T00:00:00+05:00",
+  "language": "en",
+  "assets": [
+    {
+      "path": "quran/english/en-sahih-international-simple.json",
+      "kind": "quran",
+      "language": "en",
+      "sha256": "c001a62a8fe84268be6f715a97285fee3b3f5a9938e6af290b166dbeebfc6a6d",
+      "record_count": 6236,
+      "indexable_record_count": 6236,
+      "source": {
+        "repository": "https://github.com/sak0x7d5/LearnIslamAI",
+        "revision": "db4f8bd5ab474a1a83131d866fc028882cdfcbac",
+        "attribution": "Saheeh International English translation"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "The project commit does not document this file's upstream source or translation-specific redistribution permission."
+      }
+    },
+    {
+      "path": "quran/metadata/surah.json",
+      "kind": "surah_names",
+      "language": "en",
+      "sha256": "5bd268758b9883205902c91c430a1b3b72938ae19ccf70c20ea5f977ab5f732b",
+      "record_count": 114,
+      "indexable_record_count": 114,
+      "source": {
+        "repository": "https://github.com/sak0x7d5/LearnIslamAI",
+        "revision": "d2335f2bc12bc860db5f590deb1269e272d7d42d",
+        "attribution": "Simplified Quran chapter names adapted from existing project metadata"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "The earlier project commit does not document the upstream source or redistribution terms for its chapter metadata."
+      }
+    },
+    {
+      "path": "hadith/english/eng-abudawud.json",
+      "kind": "hadith",
+      "language": "en",
+      "sha256": "52b768a06fb15c303407d34a376ddcc887192c70c7b17ecd033cc8b6eeb0f245",
+      "record_count": 5274,
+      "indexable_record_count": 5272,
+      "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-abudawud.json",
+      "source": {
+        "repository": "https://github.com/fawazahmed0/hadith-api",
+        "revision": "1",
+        "attribution": "Sunan Abu Dawud English edition; translator listed as Unknown upstream"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "Pinned upstream edition metadata lists no source or comments and identifies the translator as Unknown; translation rights remain unverified."
+      }
+    },
+    {
+      "path": "hadith/english/eng-bukhari.json",
+      "kind": "hadith",
+      "language": "en",
+      "sha256": "e24eea9da66e205f490633d00946067f0514d3a2c0638b1bda2585d972f135eb",
+      "record_count": 7589,
+      "indexable_record_count": 7580,
+      "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari.json",
+      "source": {
+        "repository": "https://github.com/fawazahmed0/hadith-api",
+        "revision": "1",
+        "attribution": "Sahih al Bukhari English edition; Muhsin Khan"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "Pinned upstream edition metadata attributes Muhsin Khan but lists no source or comments; translation rights remain unverified."
+      }
+    },
+    {
+      "path": "hadith/english/eng-dehlawi.json",
+      "kind": "hadith",
+      "language": "en",
+      "sha256": "9914185960232c0338468a1e6cfb045dcb51142ff0b48f63597f9aaa056886b2",
+      "record_count": 40,
+      "indexable_record_count": 40,
+      "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-dehlawi.json",
+      "source": {
+        "repository": "https://github.com/fawazahmed0/hadith-api",
+        "revision": "1",
+        "attribution": "Forty Hadith of Shah Waliullah Dehlawi; Shah Waliullah Dehlawi"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "Pinned upstream edition metadata names Shah Waliullah Dehlawi but lists no source or comments; edition-specific rights remain unverified."
+      }
+    },
+    {
+      "path": "hadith/english/eng-ibnmajah.json",
+      "kind": "hadith",
+      "language": "en",
+      "sha256": "6201c75cf067be6f638d1b9e06e376c9c86a58fc4ad54e6d98994afe78381083",
+      "record_count": 4343,
+      "indexable_record_count": 4340,
+      "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-ibnmajah.json",
+      "source": {
+        "repository": "https://github.com/fawazahmed0/hadith-api",
+        "revision": "1",
+        "attribution": "Sunan Ibn Majah English edition; translator listed as Unknown upstream"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "Pinned upstream edition metadata lists no source or comments and identifies the translator as Unknown; translation rights remain unverified."
+      }
+    },
+    {
+      "path": "hadith/english/eng-malik.json",
+      "kind": "hadith",
+      "language": "en",
+      "sha256": "adfc9cc053cacc6455086c83bc097a67a5b37956add9366326e7e3753ba8bad7",
+      "record_count": 1858,
+      "indexable_record_count": 1818,
+      "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-malik.json",
+      "source": {
+        "repository": "https://github.com/fawazahmed0/hadith-api",
+        "revision": "1",
+        "attribution": "Muwatta Malik English edition; translator listed as Unknown upstream"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "Pinned upstream edition metadata lists no source or comments and identifies the translator as Unknown; translation rights remain unverified."
+      }
+    },
+    {
+      "path": "hadith/english/eng-muslim.json",
+      "kind": "hadith",
+      "language": "en",
+      "sha256": "a18745934d31a3ac27a5b4cd8b1cb992cce786bf8cc107181a12f360a0c6a354",
+      "record_count": 7563,
+      "indexable_record_count": 7360,
+      "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-muslim.json",
+      "source": {
+        "repository": "https://github.com/fawazahmed0/hadith-api",
+        "revision": "1",
+        "attribution": "Sahih Muslim English edition; Abdul Hamid Siddiqui"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "Pinned upstream edition metadata attributes Abdul Hamid Siddiqui but lists no source or comments; translation rights remain unverified."
+      }
+    },
+    {
+      "path": "hadith/english/eng-nasai.json",
+      "kind": "hadith",
+      "language": "en",
+      "sha256": "8d5bf37eb7327b21925a74fa0f525cd8d8cb745900cbefdd1cdc941bb92f5fc0",
+      "record_count": 5765,
+      "indexable_record_count": 5679,
+      "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-nasai.json",
+      "source": {
+        "repository": "https://github.com/fawazahmed0/hadith-api",
+        "revision": "1",
+        "attribution": "Sunan an Nasai English edition; translator listed as Unknown upstream"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "Pinned upstream edition metadata lists no source or comments and identifies the translator as Unknown; translation rights remain unverified."
+      }
+    },
+    {
+      "path": "hadith/english/eng-nawawi.json",
+      "kind": "hadith",
+      "language": "en",
+      "sha256": "6b79a7cae1fd23e9ee2016a9f1b0ef3bea63792d000c5809a86ea469d7d8cd4b",
+      "record_count": 42,
+      "indexable_record_count": 42,
+      "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-nawawi.json",
+      "source": {
+        "repository": "https://github.com/fawazahmed0/hadith-api",
+        "revision": "1",
+        "attribution": "Forty Hadith of an-Nawawi; Imam Nawawi"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "Pinned upstream edition metadata names Imam Nawawi but lists no source or comments; edition-specific rights remain unverified."
+      }
+    },
+    {
+      "path": "hadith/english/eng-qudsi.json",
+      "kind": "hadith",
+      "language": "en",
+      "sha256": "1caa65b5eb77ddeb90669a73adee2feebee7882925323e15d42f9a3af9f28fa9",
+      "record_count": 40,
+      "indexable_record_count": 40,
+      "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-qudsi.json",
+      "source": {
+        "repository": "https://github.com/fawazahmed0/hadith-api",
+        "revision": "1",
+        "attribution": "Forty Hadith Qudsi English edition; translator listed as Unknown upstream"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "Pinned upstream edition metadata lists no source or comments and identifies the translator as Unknown; translation rights remain unverified."
+      }
+    },
+    {
+      "path": "hadith/english/eng-tirmidhi.json",
+      "kind": "hadith",
+      "language": "en",
+      "sha256": "186b17058919e53c91dabd8021b7f1216db27f54a648681a2e62206c35a17e1c",
+      "record_count": 3998,
+      "indexable_record_count": 3926,
+      "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-tirmidhi.json",
+      "source": {
+        "repository": "https://github.com/fawazahmed0/hadith-api",
+        "revision": "1",
+        "attribution": "Jami At Tirmidhi English edition; translator listed as Unknown upstream"
+      },
+      "redistribution": {
+        "status": "review_required",
+        "note": "Pinned upstream edition metadata lists no source or comments and identifies the translator as Unknown; translation rights remain unverified."
+      }
+    }
+  ]
+}

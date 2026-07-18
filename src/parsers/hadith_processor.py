@@ -1,69 +1,81 @@
+"""Hadith corpus parser."""
+
+from __future__ import annotations
+
 import json
-from pathlib import Path
 from typing import List
+
 from langchain_core.documents import Document
-from parsers.base import BaseProcessor
-from core.config import logger
 from langchain_text_splitters import SentenceTransformersTokenTextSplitter
 
+from core.config import logger
+from parsers.base import BaseProcessor
+
+
 class HadithProcessor(BaseProcessor):
+    """Convert one Hadith edition into token-safe documents."""
+
     def to_chunks(self, text_splitter: SentenceTransformersTokenTextSplitter) -> List[Document]:
-        """
-        Process Hadith JSON file.
-        Returns chunked Document objects.
-        """
-        logger.info(f"Processing Hadith dataset: {self.file_path.name}")
-        
+        logger.info("Processing Hadith dataset: %s", self.file_path.name)
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except Exception as e:
-            logger.error(f"Failed to read {self.file_path}: {e}")
+            data = json.loads(self.file_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.error("Failed to read %s: %s", self.file_path, exc)
             return []
 
-        docs = []
-
-        book_metadata: dict = data["metadata"]
-        sections: dict = book_metadata["sections"]
-        name: str = book_metadata["name"]
-    
-        for i, hadith_data in enumerate(data['hadiths']):
-                
-                text = hadith_data["text"]
-
-                if not text.strip():
-                    logger.warning(f'Blank hadith: {hadith_data}\n\nBook name: {name}')
-                    continue
-
-                reference = hadith_data['reference']
-                metadata = {
-                    "name": name,
-                    "section": sections[str(reference['book'])],
-                    "hadithnumber": hadith_data["hadithnumber"],
-                    "arabicnumber": hadith_data.get("arabicnumber"),
-                    "reference": reference,
-                    "type": "hadith",
-                    "source_file": str(self.file_path),
-                    "array_index": i
-                }
-                if hadith_data.get("grades"):
-                    metadata["grades"] = hadith_data["grades"]
-
-                docs.append(Document(page_content=text, metadata=metadata))
-
-        if not docs:
-            logger.warning(f"No valid hadith found to embed in {self.file_path.name}")
+        if not isinstance(data, dict):
+            logger.error("Hadith dataset must be a JSON object: %s", self.file_path)
+            return []
+        book_metadata = data.get("metadata")
+        hadiths = data.get("hadiths")
+        if not isinstance(book_metadata, dict) or not isinstance(hadiths, list):
+            logger.error("Hadith dataset is missing metadata or hadiths: %s", self.file_path)
             return []
 
-        logger.info(f"Chunking {len(docs)} hadiths for {self.file_path.name}...")
-        chunked_docs = text_splitter.split_documents(docs)
-            
-        return chunked_docs
+        sections = book_metadata.get("sections", {})
+        if not isinstance(sections, dict):
+            sections = {}
+        name = str(book_metadata.get("name", self.file_path.stem))
+        documents: list[Document] = []
+        blank_records = 0
 
-if __name__ == "__main__":
-    from core.config import DEFAULT_MODEL_NAME
-    text_splitter = SentenceTransformersTokenTextSplitter(model_name=DEFAULT_MODEL_NAME)
+        for array_index, hadith_data in enumerate(hadiths):
+            if not isinstance(hadith_data, dict):
+                continue
+            text = hadith_data.get("text", "")
+            if not isinstance(text, str) or not text.strip():
+                blank_records += 1
+                continue
 
-    processor = HadithProcessor(Path("data\\hadith\\editions\\english\\eng-bukhari.json"))
-    docs = processor.to_chunks(text_splitter)
-    print(docs[3604:3604+25])
+            reference = hadith_data.get("reference", {})
+            if not isinstance(reference, dict):
+                reference = {}
+            book_number = reference.get("book")
+            metadata = {
+                "name": name,
+                "section": sections.get(str(book_number), ""),
+                "hadithnumber": hadith_data.get("hadithnumber"),
+                "arabicnumber": hadith_data.get("arabicnumber"),
+                "reference": reference,
+                "type": "hadith",
+                "source_id": f"hadith/english/{self.file_path.name}",
+                "array_index": array_index,
+            }
+            grades = hadith_data.get("grades")
+            if isinstance(grades, list) and grades:
+                metadata["grades"] = grades
+            documents.append(Document(page_content=text.strip(), metadata=metadata))
+
+        if blank_records:
+            logger.warning(
+                "Skipped %s declared blank-text records in %s",
+                blank_records,
+                self.file_path.name,
+            )
+
+        if not documents:
+            logger.warning("No valid Hadith found to embed in %s", self.file_path.name)
+            return []
+
+        logger.info("Chunking %s Hadith records for %s", len(documents), self.file_path.name)
+        return text_splitter.split_documents(documents)

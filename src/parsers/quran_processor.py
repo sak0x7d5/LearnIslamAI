@@ -1,63 +1,116 @@
+"""Quran corpus parser."""
+
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from typing import List
+import re
+from typing import Any, List, Mapping
+
 from langchain_core.documents import Document
-from parsers.base import BaseProcessor
-from core.config import logger
 from langchain_text_splitters import SentenceTransformersTokenTextSplitter
 
+from core.config import logger
+from parsers.base import BaseProcessor
+
+
+VERSE_KEY = re.compile(r"^(?P<surah>\d+):(?P<ayah>\d+)$")
+
+
 class QuranProcessor(BaseProcessor):
-    def to_chunks(self, verse_splitter: SentenceTransformersTokenTextSplitter) -> List[Document]:
-        """
-        Process Quran JSON file.
-        Returns chunked Document objects.
-        """
-        logger.info(f"Processing Quran dataset: {self.file_path.name}")
-        
+    """Convert the bundled compact Quran JSON into token-safe documents."""
+
+    def __init__(self, file_path: Path, surah_names_path: Path | None = None):
+        super().__init__(file_path)
+        self.surah_names_path = (
+            Path(surah_names_path) if surah_names_path else self._default_names_path()
+        )
+
+    def _default_names_path(self) -> Path:
+        # <data>/quran/english/file.json -> <data>/quran/metadata/surah.json
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as f:
-                data: dict = json.load(f)
-        except Exception as e:
-            logger.error(f"Failed to read {self.file_path}: {e}")
+            return self.file_path.parents[1] / "metadata" / "surah.json"
+        except IndexError:
+            return self.file_path.parent / "surah_names.json"
+
+    def _load_surah_names(self) -> dict[str, str]:
+        try:
+            value = json.loads(self.surah_names_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Could not load Surah names from %s: %s", self.surah_names_path, exc)
+            return {}
+        if not isinstance(value, dict):
+            logger.warning("Surah names must be a JSON object: %s", self.surah_names_path)
+            return {}
+
+        names: dict[str, str] = {}
+        for number, metadata in value.items():
+            if isinstance(metadata, str):
+                names[str(number)] = metadata
+            elif isinstance(metadata, Mapping):
+                name = metadata.get("name_simple") or metadata.get("name")
+                if isinstance(name, str) and name.strip():
+                    names[str(number)] = name.strip()
+        return names
+
+    @staticmethod
+    def _compact_verses(data: Any) -> Mapping[str, Any]:
+        if not isinstance(data, dict):
+            return {}
+        # Current release format: {"1:1": {"t": "..."}, ...}
+        if data and all(isinstance(key, str) and VERSE_KEY.match(key) for key in data):
+            return data
+        # Compatibility with the older upstream envelope.
+        nested = data.get("quran", {}).get("en.sahih", {})
+        return nested if isinstance(nested, dict) else {}
+
+    def to_chunks(self, verse_splitter: SentenceTransformersTokenTextSplitter) -> List[Document]:
+        logger.info("Processing Quran dataset: %s", self.file_path.name)
+        try:
+            data = json.loads(self.file_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.error("Failed to read %s: %s", self.file_path, exc)
             return []
 
-        docs = []
+        verses = self._compact_verses(data)
+        surah_names = self._load_surah_names()
+        documents: list[Document] = []
 
-        verses_list: dict = data if isinstance(data, list) else data.get("quran", {}).get("en.sahih", {})
-  
-        for idx in verses_list.keys():
-            verse_data = verses_list[idx]
-            
-            verse = verse_data.get("verse", "")  
-
-            if not verse.strip():
+        for json_key, verse_data in verses.items():
+            if not isinstance(verse_data, dict):
                 continue
-                
-            metadata = {
-                "surah_number": verse_data["surah"],
-                "ayah_number": verse_data.get("ayah", str(idx)),
-                "surah_name": verse_data.get('name', ''),
-                "type": "quran",
-                "source_file": str(self.file_path),
-                "json_key": str(idx)
-            }
-            
-            docs.append(Document(page_content=verse, metadata=metadata))
+            key_match = VERSE_KEY.match(str(json_key))
+            if key_match:
+                surah_number = int(key_match.group("surah"))
+                ayah_number = int(key_match.group("ayah"))
+            else:
+                try:
+                    surah_number = int(verse_data["surah"])
+                    ayah_number = int(verse_data.get("ayah", json_key))
+                except (KeyError, TypeError, ValueError):
+                    continue
 
-        if not docs:
-            logger.warning(f"No valid verse found to embed in {self.file_path.name}")
+            text = verse_data.get("t") or verse_data.get("verse") or ""
+            if not isinstance(text, str) or not text.strip():
+                continue
+
+            documents.append(
+                Document(
+                    page_content=text.strip(),
+                    metadata={
+                        "surah_number": surah_number,
+                        "ayah_number": ayah_number,
+                        "surah_name": surah_names.get(str(surah_number), ""),
+                        "type": "quran",
+                        "source_id": f"quran/english/{self.file_path.name}",
+                        "json_key": str(json_key),
+                    },
+                )
+            )
+
+        if not documents:
+            logger.warning("No valid verse found to embed in %s", self.file_path.name)
             return []
 
-        logger.info(f"Chunking {len(docs)} verses for {self.file_path.name}...")
-        chunked_docs = verse_splitter.split_documents(docs)
-        
-        return chunked_docs
-
-if __name__ == "__main__":
-    from src.core.config import DEFAULT_MODEL_NAME
-    text_splitter = SentenceTransformersTokenTextSplitter(model_name=DEFAULT_MODEL_NAME)
-
-    processor = QuranProcessor(Path("src\\data\\quran\\english\\en-sahih.json"))
-    docs = processor.to_chunk(text_splitter)
-    print(docs[:5])
-    print(f"Processed {len(docs)} documents.")
+        logger.info("Chunking %s verses for %s", len(documents), self.file_path.name)
+        return verse_splitter.split_documents(documents)
