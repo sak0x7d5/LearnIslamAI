@@ -12,7 +12,10 @@ INTERNAL_STEP_MARKER = "islamai_internal"
 
 def escape_model_markdown(text: str) -> str:
     """Preserve normal Markdown while neutralizing model-generated HTML tags."""
-    return html.escape(text, quote=False)
+    # Escaping ``<`` prevents a model from opening an HTML tag. Restore ``>``
+    # afterward because it is also Markdown's blockquote prefix and is harmless
+    # without an unescaped opening angle bracket.
+    return html.escape(text, quote=False).replace("&gt;", ">")
 
 
 def restore_conversation_messages(steps: Any) -> list[HumanMessage | AIMessage]:

@@ -21,13 +21,16 @@ from core.message_utils import (  # noqa: E402
 
 
 def test_safe_markdown_allows_partial_quote_but_escapes_html():
-    answer = '<img src=x onerror="alert(1)"> **Relevant excerpt:** “his witness equaled two men.”'
+    answer = (
+        '<img src=x onerror="alert(1)"> **Relevant excerpt:**\n> “his witness equaled two men.”'
+    )
 
     rendered = escape_model_markdown(answer)
 
     assert "<img" not in rendered
     assert "&lt;img" in rendered
     assert "**Relevant excerpt:**" in rendered
+    assert "\n> “his witness" in rendered
     assert "his witness equaled two men" in rendered
 
 
