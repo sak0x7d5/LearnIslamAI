@@ -7,6 +7,8 @@ source-grounded answer with citations.
 
 - IslamAI searches local sources, then sends your question and selected excerpts
   to Google Gemini.
+- Search activity stays in one expandable row, while direct Quran and Hadith
+  excerpts are shown in locally rendered source cards.
 - Verify citations in a trusted edition. AI output can be incomplete or wrong.
 - IslamAI is **not a fatwa authority** or a substitute for qualified scholarship.
 - This v0.1 application is designed for one user on this computer and should not

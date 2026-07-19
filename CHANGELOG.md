@@ -13,8 +13,12 @@ first public release.
   SentenceTransformers, and CPU FAISS.
 - Validated English corpus manifest, first-run indexing progress, staged updates,
   atomic activation, and rollback support.
-- Structured, path-free Quran/Hadith tool records and safe Markdown source attribution.
-- Normal partial quotations no longer depend on brittle machine-only citation markers.
+- Structured, path-free Quran/Hadith tool records with deterministic references.
+- Safe green Quran and blue Hadith quotation cards with trusted collection,
+  locator, and grading footers when the excerpt matches a current search result.
+- A compact per-answer search activity that groups repeated and mixed retrieval calls.
+- Normal partial quotations no longer depend on brittle machine-only citation markers;
+  missing or invalid display references never reject an answer.
 - Open-source project documentation, contribution policy, security policy,
   conduct policy, third-party notices, and a Windows CI definition.
 
@@ -24,12 +28,15 @@ first public release.
   `%LOCALAPPDATA%\IslamAI` by default.
 - Gemini defaults to the stable `gemini-3.1-flash-lite` model and graph creation
   is deferred until a validated API key is available.
-- Repeated search tool calls render as independent top-level steps.
+- Repeated search tool calls render as ordered entries inside one collapsed,
+  correctly parented activity step above the final answer.
 
 ### Security
 
 - Disabled raw HTML, arbitrary uploads, wildcard origins, and full
   chain-of-thought display.
+- Source-card styling and classes are owned by an allowlisted React component;
+  Gemini cannot supply executable HTML, CSS classes, URLs, or trusted footer text.
 - Kept the server loopback-bound and API secrets out of session and database
   metadata.
 

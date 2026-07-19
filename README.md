@@ -23,6 +23,10 @@ for religious rulings or consequential decisions.
   Hadith collections; 36,097 Hadith records contain retrievable text
 - CPU-only SentenceTransformers embeddings and CPU FAISS search
 - Google Gemini generation, defaulting to `gemini-3.1-flash-lite`
+- One compact, expandable search-activity row per answer, including repeated
+  Quran and Hadith searches without nested tool cards
+- Application-rendered Quran and Hadith quotation cards with trusted source
+  footers when a retrieved record can be matched
 - Local indexes, model cache, update state, and chat history under
   `%LOCALAPPDATA%\IslamAI` by default
 
@@ -149,6 +153,7 @@ Default local paths:
   cache\
   corpus\
   models\
+  runtime_files\
   state\
   tools\
   vector_indices\
