@@ -589,7 +589,12 @@ async def on_message(message: cl.Message):
 
     messages = list(cl.user_session.get("messages") or [])
     messages.append(HumanMessage(content=message.content))
-    presenter = ToolStepPresenter(lambda **kwargs: cl.Step(**kwargs), utc_now)
+    current_run = cl.context.current_run
+    presenter = ToolStepPresenter(
+        lambda **kwargs: cl.Step(**kwargs),
+        utc_now,
+        parent_id=getattr(current_run, "id", None),
+    )
     run = await collect_graph_run(_runtime_graph, {"messages": messages}, presenter)
     root_output = run.output
 

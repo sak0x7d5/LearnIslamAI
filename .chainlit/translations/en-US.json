@@ -99,8 +99,8 @@
         },
         "messages": {
             "status": {
-                "using": "Using",
-                "used": "Used"
+                "using": "Searching",
+                "used": "Searched"
             },
             "actions": {
                 "copy": {
