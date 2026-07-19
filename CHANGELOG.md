@@ -30,6 +30,8 @@ first public release.
   is deferred until a validated API key is available.
 - Repeated search tool calls render as ordered entries inside one collapsed,
   correctly parented activity step above the final answer.
+- The Windows launcher now accepts an already-correct default-port origin
+  allowlist while still generating exact origins for custom ports.
 
 ### Security
 

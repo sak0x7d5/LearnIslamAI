@@ -14,7 +14,7 @@ a push, tag, public repository, or release.
 | Gate | Status | Evidence |
 | --- | --- | --- |
 | Work isolation | Pass | All release work was performed in `C:\tmp\IslamAI-oss-v0.1`; the backup worktree remained untouched |
-| Windows locked runtime | Pass | Clean and repeat installs, incompatible-environment replacement, path-with-spaces install, and warm launch passed |
+| Windows locked runtime | Pass | Clean and repeat installs, incompatible-environment replacement, path-with-spaces install, default-port idempotency, and warm launch passed |
 | CPU-only dependency policy | Pass | Lock and installed-environment audits contain CPU PyTorch and `faiss-cpu`, with no CUDA runtime, `faiss-gpu`, `torchvision`, or `torchaudio` |
 | Corpus integrity | Pass | Manifest hashes and schemas validate 6,236 Quran verses, 36,512 raw Hadith records, 36,097 text-bearing Hadith records, and 114 Surah names |
 | Retrieval and attribution | Pass | BGE instruction, 384-dimensional normalized embeddings, token limits, reviewed retrieval queries, path-free records, partial-excerpt matching, and permissive trusted card footers passed |
@@ -39,6 +39,7 @@ be2c7be docs: complete open source readiness foundation
 69ce8e2 docs: finalize local readiness evidence
 e05d2c7 fix: aggregate search activity by chat turn
 e1d4e43 feat: render safe Quran and Hadith source cards
+0adb0ea docs: record safe source-card readiness
 ```
 
 The documentation commit is the commit containing this report. The ignored
@@ -55,9 +56,9 @@ PyTorch: 2.11.0+cpu; torch.version.cuda is None; torch.cuda.is_available() is fa
 FAISS: 1.13.2 CPU; no forbidden GPU, vision, or audio distributions
 LangGraph compatibility: langgraph-prebuilt 1.0.8 import pass
 Ruff: check pass; 39 Python files formatted
-pytest: 92 passed
+pytest: 93 passed
 application import: pass with lazy graph and API-key construction
-launcher: HTTP 200; IslamAI title; 127.0.0.1-only listener; exact dynamic origins; clean shutdown
+launcher: default-port and custom-port origin generation; HTTP 200; IslamAI title; 127.0.0.1-only listener; clean shutdown
 Windows bootstrap: clean, repeat, broken-.venv recovery, and path-with-spaces cases pass
 corpus: Quran 6,236; Hadith 36,512 raw / 36,097 text-bearing; Surah names 114
 full local index: 43,814 chunks; 384 dimensions; normalized vector norm 1.0

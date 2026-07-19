@@ -150,6 +150,52 @@ def test_launcher_is_space_safe_and_loopback_only() -> None:
     assert '"--no-sync", "--project", $ProjectRoot' in installer
 
 
+def test_runtime_origin_rewrite_accepts_default_and_custom_ports() -> None:
+    escaped_path = str(INSTALLER_PATH).replace("'", "''")
+    powershell_test = (
+        "$tokens=$null; $errors=$null; "
+        f"$ast=[System.Management.Automation.Language.Parser]::ParseFile('{escaped_path}', "
+        "[ref]$tokens, [ref]$errors); "
+        "$function=$ast.Find({ param($node) "
+        "$node -is [System.Management.Automation.Language.FunctionDefinitionAst] "
+        "-and $node.Name -eq 'Get-ChainlitRuntimeConfig' }, $true); "
+        "if ($null -eq $function) { throw 'Config helper not found.' }; "
+        "Invoke-Expression $function.Extent.Text; "
+        "$config=('[project]', "
+        '\'allow_origins = ["http://127.0.0.1:8000", "http://localhost:8000"]\', '
+        "'') -join [Environment]::NewLine; "
+        "$default=Get-ChainlitRuntimeConfig -ConfigText $config -CandidatePort 8000; "
+        "if ($default -ne $config) { throw 'Default-port config changed unexpectedly.' }; "
+        "$custom=Get-ChainlitRuntimeConfig -ConfigText $config -CandidatePort 8123; "
+        "if (-not $custom.Contains('127.0.0.1:8123') -or "
+        "-not $custom.Contains('localhost:8123')) { throw 'Custom port was not applied.' }; "
+        "$missingThrew=$false; try { Get-ChainlitRuntimeConfig "
+        "-ConfigText (('[project]', 'cache = false', '') -join [Environment]::NewLine) "
+        "-CandidatePort 8000 } "
+        "catch { $missingThrew=$true }; "
+        "if (-not $missingThrew) { throw 'Missing allowlist was accepted.' }; "
+        "$duplicateThrew=$false; try { Get-ChainlitRuntimeConfig "
+        "-ConfigText ($config + $config) -CandidatePort 8000 } "
+        "catch { $duplicateThrew=$true }; "
+        "if (-not $duplicateThrew) { throw 'Duplicate allowlists were accepted.' }"
+    )
+    result = subprocess.run(
+        [
+            "powershell.exe",
+            "-NoLogo",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            powershell_test,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
 def test_powershell_installer_parses() -> None:
     escaped_path = str(INSTALLER_PATH).replace("'", "''")
     parse_command = (

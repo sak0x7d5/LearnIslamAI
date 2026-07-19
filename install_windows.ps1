@@ -228,6 +228,22 @@ function Get-LoopbackServiceState {
     }
 }
 
+function Get-ChainlitRuntimeConfig {
+    param(
+        [Parameter(Mandatory = $true)][string] $ConfigText,
+        [Parameter(Mandatory = $true)][int] $CandidatePort
+    )
+
+    $originPattern = '(?m)^[ \t]*allow_origins[ \t]*=[^\r\n]*'
+    $originMatches = [regex]::Matches($ConfigText, $originPattern)
+    if ($originMatches.Count -ne 1) {
+        throw "Expected exactly one Chainlit origin allowlist entry."
+    }
+
+    $originLine = 'allow_origins = ["http://127.0.0.1:{0}", "http://localhost:{0}"]' -f $CandidatePort
+    return [regex]::Replace($ConfigText, $originPattern, $originLine)
+}
+
 function New-ChainlitRuntimeRoot {
     param([Parameter(Mandatory = $true)][int] $CandidatePort)
 
@@ -241,15 +257,7 @@ function New-ChainlitRuntimeRoot {
     $sourceConfig = Join-Path $ProjectRoot ".chainlit\config.toml"
     $runtimeConfig = Join-Path $runtimeConfigDir "config.toml"
     $configText = [System.IO.File]::ReadAllText($sourceConfig)
-    $originLine = 'allow_origins = ["http://127.0.0.1:{0}", "http://localhost:{0}"]' -f $CandidatePort
-    $updatedConfig = [regex]::Replace(
-        $configText,
-        '(?m)^allow_origins\s*=.*$',
-        $originLine
-    )
-    if ($updatedConfig -eq $configText) {
-        throw "Could not set the runtime Chainlit origin allowlist."
-    }
+    $updatedConfig = Get-ChainlitRuntimeConfig -ConfigText $configText -CandidatePort $CandidatePort
     [System.IO.File]::WriteAllText(
         $runtimeConfig,
         $updatedConfig,
