@@ -1,14 +1,16 @@
-# Welcome to Chainlit! 🚀🤖
+# IslamAI
 
-Hi there, Developer! 👋 We're excited to have you on board. Chainlit is a powerful tool designed to help you prototype, debug and share applications built on top of LLMs.
+Search the bundled English Quran and Hadith collections and receive a
+source-grounded answer with citations.
 
-## Useful Links 🔗
+## Before you ask
 
-- **Documentation:** Get started with our comprehensive [Chainlit Documentation](https://docs.chainlit.io) 📚
-- **Discord Community:** Join our friendly [Chainlit Discord](https://discord.gg/k73SQ3FyUh) to ask questions, share your projects, and connect with other developers! 💬
+- IslamAI searches local sources, then sends your question and selected excerpts
+  to Google Gemini.
+- Verify citations in a trusted edition. AI output can be incomplete or wrong.
+- IslamAI is **not a fatwa authority** or a substitute for qualified scholarship.
+- This v0.1 application is designed for one user on this computer and should not
+  be exposed to a network.
 
-We can't wait to see what you create with Chainlit! Happy coding! 💻😊
-
-## Welcome screen
-
-To modify the welcome screen, edit the `chainlit.md` file at the root of your project. If you do not want a welcome screen, just leave this file empty.
+Try asking about a teaching, narrator, verse, or theme. Specific wording usually
+produces the strongest source matches.

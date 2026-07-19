@@ -1,0 +1,49 @@
+name: Source or citation correction
+description: Report a Quran/Hadith text, locator, grading, or attribution issue.
+title: "[Source]: "
+labels: [corpus]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cite an authoritative edition and stable locator. Do not upload or paste
+        an entire copyrighted work. A source correction cannot be merged without
+        provenance and redistribution evidence.
+  - type: dropdown
+    id: source_kind
+    attributes:
+      label: Source kind
+      options:
+        - Quran
+        - Hadith
+        - Surah metadata
+    validations:
+      required: true
+  - type: input
+    id: locator
+    attributes:
+      label: IslamAI locator
+      description: For example, Quran 2:255 or collection and Hadith number.
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue
+      description: Explain the mismatch without reproducing unnecessary text.
+    validations:
+      required: true
+  - type: input
+    id: authority
+    attributes:
+      label: Authoritative reference
+      description: Edition, translator/compiler, publisher, and stable URL or ISBN.
+    validations:
+      required: true
+  - type: textarea
+    id: rights
+    attributes:
+      label: Provenance and redistribution basis
+      description: Identify the license or permission covering the proposed wording.
+    validations:
+      required: true
