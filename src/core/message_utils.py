@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+import html
 import json
 from typing import Any
 
@@ -7,6 +8,11 @@ from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 
 TEXT_BLOCK_TYPES = {"text", "output_text"}
 INTERNAL_STEP_MARKER = "islamai_internal"
+
+
+def escape_model_markdown(text: str) -> str:
+    """Preserve normal Markdown while neutralizing model-generated HTML tags."""
+    return html.escape(text, quote=False)
 
 
 def restore_conversation_messages(steps: Any) -> list[HumanMessage | AIMessage]:

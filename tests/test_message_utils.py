@@ -10,6 +10,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from core.message_utils import (  # noqa: E402
+    escape_model_markdown,
     extract_final_ai_message_text,
     extract_final_graph_answer,
     extract_root_graph_answer,
@@ -17,6 +18,17 @@ from core.message_utils import (  # noqa: E402
     extract_text_content,
     restore_conversation_messages,
 )
+
+
+def test_safe_markdown_allows_partial_quote_but_escapes_html():
+    answer = '<img src=x onerror="alert(1)"> **Relevant excerpt:** “his witness equaled two men.”'
+
+    rendered = escape_model_markdown(answer)
+
+    assert "<img" not in rendered
+    assert "&lt;img" in rendered
+    assert "**Relevant excerpt:**" in rendered
+    assert "his witness equaled two men" in rendered
 
 
 def test_extract_text_content_handles_gemini_blocks():

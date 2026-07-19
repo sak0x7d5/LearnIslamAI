@@ -14,17 +14,18 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from core.graph import (  # noqa: E402
-    GROUNDING_FAILURE_MESSAGE,
-    NO_RESULTS_MESSAGE,
+    _route_after_chatbot,
     create_search_tools,
     make_chatbot,
     make_tool_node,
-    make_validation_node,
 )
 
 
 def test_chatbot_propagates_runnable_config():
-    ainvoke = AsyncMock(return_value=AIMessage(content="final answer"))
+    partial_answer = (
+        "Khuzaimah ibn Thabit’s testimony counted as two witnesses. (Sahih al-Bukhari, Hadith 2807)"
+    )
+    ainvoke = AsyncMock(return_value=AIMessage(content=partial_answer))
     chatbot = make_chatbot(SimpleNamespace(ainvoke=ainvoke))
     config = {"callbacks": [], "configurable": {"thread_id": "test-thread"}}
 
@@ -35,7 +36,7 @@ def test_chatbot_propagates_runnable_config():
     ainvoke.assert_awaited_once_with(ANY, config=config)
     invoked_messages = ainvoke.await_args.args[0]
     assert isinstance(invoked_messages[0], SystemMessage)
-    assert result == {"messages": [AIMessage(content="final answer")]}
+    assert result == {"messages": [AIMessage(content=partial_answer)]}
 
 
 def test_search_tool_returns_content_and_structured_artifact(tmp_path):
@@ -62,7 +63,8 @@ def test_search_tool_returns_content_and_structured_artifact(tmp_path):
     )
     content, artifact = quran_tool.func("throne verse", 5)
 
-    assert "Source ID: Q-2-255" in content
+    assert "Source: Al-Baqarah — Quran 2:255" in content
+    assert "Source ID:" not in content
     assert artifact[0]["id"] == "Q-2-255"
     assert "source_file" not in artifact[0]
 
@@ -101,88 +103,23 @@ def test_tool_node_preserves_citation_artifact(tmp_path):
     assert message.artifact[0]["id"] == "Q-2-255"
 
 
-def test_validation_repairs_unknown_citation_once():
-    record = {
-        "id": "Q-2-255",
-        "kind": "quran",
-        "text": "x",
-        "title": "Al-Baqarah",
-        "locator": "Quran 2:255",
-        "grading": None,
-    }
-    messages = [
-        ToolMessage(content="source", artifact=[record], tool_call_id="call-1"),
-        AIMessage(content="Draft [[cite:Q-9-9]]"),
-    ]
-    llm = SimpleNamespace(
-        ainvoke=AsyncMock(return_value=AIMessage(content="Repaired [[cite:Q-2-255]]"))
-    )
-    node = make_validation_node(llm)
-
-    result = asyncio.run(node({"messages": messages}, {}))
-
-    assert result["messages"][0].content == "Repaired [[cite:Q-2-255]]"
-    assert llm.ainvoke.await_count == 1
-
-
-def test_validation_fails_closed_after_bad_repair():
-    record = {
-        "id": "Q-2-255",
-        "kind": "quran",
-        "text": "x",
-        "title": "Al-Baqarah",
-        "locator": "Quran 2:255",
-        "grading": None,
-    }
-    messages = [
-        ToolMessage(content="source", artifact=[record], tool_call_id="call-1"),
-        AIMessage(content="Uncited draft"),
-    ]
-    llm = SimpleNamespace(ainvoke=AsyncMock(return_value=AIMessage(content="Still uncited")))
-
-    result = asyncio.run(make_validation_node(llm)({"messages": messages}, {}))
-
-    assert result["messages"][0].content == GROUNDING_FAILURE_MESSAGE
-    assert llm.ainvoke.await_count == 1
-
-
-def test_validation_rejects_answer_that_never_searched():
-    llm = SimpleNamespace(ainvoke=AsyncMock())
-
-    result = asyncio.run(
-        make_validation_node(llm)({"messages": [AIMessage(content="Answer from memory")]}, {})
+def test_partial_hadith_answer_routes_directly_to_end():
+    answer = AIMessage(
+        content=(
+            "The relevant portion says his witness equaled two men’s. "
+            "(Sahih al-Bukhari, Hadith 2807)"
+        )
     )
 
-    assert result["messages"][0].content == GROUNDING_FAILURE_MESSAGE
-    llm.ainvoke.assert_not_awaited()
+    assert _route_after_chatbot({"messages": [answer]}) == "end"
 
 
-def test_validation_replaces_ungrounded_answer_after_empty_search():
-    llm = SimpleNamespace(ainvoke=AsyncMock())
-    messages = [
-        ToolMessage(content="No matching records.", artifact=[], tool_call_id="call-1"),
-        AIMessage(content="An answer invented from model memory."),
-    ]
+def test_tool_call_routes_back_to_search_tools():
+    call = {
+        "name": "search_hadith",
+        "args": {"query": "Khuzaimah testimony"},
+        "id": "call-1",
+        "type": "tool_call",
+    }
 
-    result = asyncio.run(make_validation_node(llm)({"messages": messages}, {}))
-
-    assert result["messages"][0].content == NO_RESULTS_MESSAGE
-    llm.ainvoke.assert_not_awaited()
-
-
-def test_validation_replaces_answer_after_failed_search():
-    llm = SimpleNamespace(ainvoke=AsyncMock())
-    messages = [
-        ToolMessage(
-            content="The search failed.",
-            artifact=None,
-            tool_call_id="call-1",
-            status="error",
-        ),
-        AIMessage(content="A confident answer despite the failure."),
-    ]
-
-    result = asyncio.run(make_validation_node(llm)({"messages": messages}, {}))
-
-    assert result["messages"][0].content == NO_RESULTS_MESSAGE
-    llm.ainvoke.assert_not_awaited()
+    assert _route_after_chatbot({"messages": [AIMessage(content="", tool_calls=[call])]}) == "tools"

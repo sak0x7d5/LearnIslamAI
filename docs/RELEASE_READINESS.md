@@ -17,9 +17,9 @@ a push, tag, public repository, or release.
 | Windows locked runtime | Pass | Clean and repeat installs, incompatible-environment replacement, path-with-spaces install, and warm launch passed |
 | CPU-only dependency policy | Pass | Lock and installed-environment audits contain CPU PyTorch and `faiss-cpu`, with no CUDA runtime, `faiss-gpu`, `torchvision`, or `torchaudio` |
 | Corpus integrity | Pass | Manifest hashes and schemas validate 6,236 Quran verses, 36,512 raw Hadith records, 36,097 text-bearing Hadith records, and 114 Surah names |
-| Retrieval and citations | Pass | BGE instruction, 384-dimensional normalized embeddings, token limits, reviewed retrieval queries, deterministic citations, and repeated-tool rendering passed |
+| Retrieval and citations | Pass | BGE instruction, 384-dimensional normalized embeddings, token limits, reviewed retrieval queries, path-free source records, and repeated-tool rendering passed |
 | Startup/update safety | Pass | Single-flight startup, failed-ingestion retry, decline-without-network, staged validation, atomic activation, failure preservation, and rollback passed |
-| Secret and UI safety | Pass | Key validation/non-disclosure, escaped citation cards, independent top-level steps, loopback binding, and hardened Chainlit configuration passed |
+| Secret and UI safety | Pass | Key validation/non-disclosure, escaped Markdown answers, independent top-level steps, loopback binding, and hardened Chainlit configuration passed |
 | Documentation | Pass (local) | Installation, data, privacy, updates, troubleshooting, testing, cleanup, limitations, disclaimer, governance, and security are documented |
 | Corpus redistribution rights | **Blocked** | Permission/license for each exact English translation and third-party grading text is unresolved |
 | Public-operation authorization | **Blocked by policy** | Push, tag, publication, and remote changes were not requested or performed |

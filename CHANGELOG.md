@@ -13,7 +13,8 @@ first public release.
   SentenceTransformers, and CPU FAISS.
 - Validated English corpus manifest, first-run indexing progress, staged updates,
   atomic activation, and rollback support.
-- Structured Quran/Hadith citation records and escaped citation cards.
+- Structured, path-free Quran/Hadith tool records and safe Markdown source attribution.
+- Normal partial quotations no longer depend on brittle machine-only citation markers.
 - Open-source project documentation, contribution policy, security policy,
   conduct policy, third-party notices, and a Windows CI definition.
 

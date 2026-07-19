@@ -13,12 +13,6 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import SecretStr
 
 from core.api_keys import ApiKeyService, EnvFileService, ValidationResult
-from core.citations import (
-    CitationRecord,
-    collect_citations,
-    ordered_citations,
-    render_citation_markers,
-)
 from core.config import (
     CORPUS_UPDATE_MANIFEST_URL,
     DB_PATH,
@@ -37,7 +31,11 @@ from core.knowledge_base import (
     UpdateStatus,
     build_staged_indexes,
 )
-from core.message_utils import extract_final_graph_answer, restore_conversation_messages
+from core.message_utils import (
+    escape_model_markdown,
+    extract_final_graph_answer,
+    restore_conversation_messages,
+)
 from core.startup_status import StartupStatus
 from core.tool_steps import ToolStepPresenter
 
@@ -562,13 +560,6 @@ async def on_chat_resume(thread: dict[str, Any]):
         observer.add_done_callback(_consume_task_result)
 
 
-def _citation_elements(records: list[CitationRecord]) -> list[cl.CustomElement]:
-    return [
-        cl.CustomElement(name="CitationCard", display="inline", props=dict(record))
-        for record in records
-    ]
-
-
 @cl.on_message
 async def on_message(message: cl.Message):
     global _runtime_graph, _validated_key
@@ -615,23 +606,20 @@ async def on_message(message: cl.Message):
 
     if root_output is None:
         logger.error("LangGraph completed without an authoritative root result.")
-        await presenter.fail_all("The search ended before a verified answer was available.")
+        await presenter.fail_all("The search ended before a final answer was available.")
         await cl.Message(
-            content="I’m sorry, I couldn’t generate a verified answer. Please try again."
+            content="I’m sorry, I couldn’t generate an answer. Please try again."
         ).send()
         return
 
     final_answer = extract_final_graph_answer(root_output)
-    graph_messages = root_output.get("messages", [])
-    records = collect_citations(graph_messages if isinstance(graph_messages, list) else [])
-    cited_records = ordered_citations(final_answer, records)
     if not final_answer:
         await cl.Message(
-            content="I’m sorry, I couldn’t generate a verified answer. Please try again."
+            content="I’m sorry, I couldn’t generate an answer. Please try again."
         ).send()
         return
 
-    rendered = render_citation_markers(final_answer, records)
-    await cl.Message(content=rendered, elements=_citation_elements(cited_records)).send()
+    rendered = escape_model_markdown(final_answer)
+    await cl.Message(content=rendered).send()
     messages.append(AIMessage(content=rendered))
     cl.user_session.set("messages", messages)

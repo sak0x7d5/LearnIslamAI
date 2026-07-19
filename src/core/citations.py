@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-import html
 import re
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
 from langchain_core.documents import Document
-from langchain_core.messages import ToolMessage
 
 from core.source_manager import SourceManager
 
@@ -23,17 +20,6 @@ class CitationRecord(TypedDict):
     title: str
     locator: str
     grading: str | None
-
-
-@dataclass(frozen=True)
-class CitationValidation:
-    valid: bool
-    cited_ids: tuple[str, ...]
-    unknown_ids: tuple[str, ...]
-    reason: str | None = None
-
-
-CITATION_MARKER_RE = re.compile(r"\[\[cite:([A-Za-z0-9._:-]+)\]\]")
 
 
 def _slug(value: Any) -> str:
@@ -117,59 +103,6 @@ def format_tool_content(records: list[CitationRecord]) -> str:
     for record in records:
         grading = f"\nGrading: {record['grading']}" if record["grading"] else ""
         blocks.append(
-            f"Source ID: {record['id']}\n"
-            f"Source: {record['title']} — {record['locator']}{grading}\n"
-            f"Text: {record['text']}"
+            f"Source: {record['title']} — {record['locator']}{grading}\nText: {record['text']}"
         )
     return "\n\n---\n\n".join(blocks)
-
-
-def collect_citations(messages: list[Any]) -> list[CitationRecord]:
-    records: list[CitationRecord] = []
-    for message in messages:
-        if not isinstance(message, ToolMessage):
-            continue
-        artifact = getattr(message, "artifact", None)
-        candidates = artifact.get("citations", []) if isinstance(artifact, dict) else artifact
-        if not isinstance(candidates, list):
-            continue
-        for candidate in candidates:
-            if not isinstance(candidate, dict):
-                continue
-            required = {"id", "kind", "text", "title", "locator", "grading"}
-            if required.issubset(candidate):
-                records.append(candidate)  # type: ignore[arg-type]
-    return deduplicate_citations(records)
-
-
-def validate_citations(answer: str, records: list[CitationRecord]) -> CitationValidation:
-    cited = tuple(dict.fromkeys(CITATION_MARKER_RE.findall(answer)))
-    allowed = {record["id"] for record in records}
-    unknown = tuple(identifier for identifier in cited if identifier not in allowed)
-    if unknown:
-        return CitationValidation(False, cited, unknown, "unknown citation IDs")
-    if records and not cited:
-        return CitationValidation(False, cited, (), "retrieved sources were not cited")
-    return CitationValidation(True, cited, ())
-
-
-def ordered_citations(answer: str, records: list[CitationRecord]) -> list[CitationRecord]:
-    by_id = {record["id"]: record for record in records}
-    return [
-        by_id[item] for item in dict.fromkeys(CITATION_MARKER_RE.findall(answer)) if item in by_id
-    ]
-
-
-def render_citation_markers(answer: str, records: list[CitationRecord]) -> str:
-    by_id = {record["id"]: record for record in records}
-
-    def replace(match: re.Match[str]) -> str:
-        record = by_id.get(match.group(1))
-        if not record:
-            return "[unverified source]"
-        # The identifier is restricted by CITATION_MARKER_RE and therefore cannot
-        # inject Markdown. Human-readable source details remain in the React card,
-        # where string props are escaped by React.
-        return f"[{record['id']}]"
-
-    return CITATION_MARKER_RE.sub(replace, html.escape(answer, quote=False))

@@ -3,7 +3,6 @@ import sys
 from pathlib import Path
 
 from langchain_core.documents import Document
-from langchain_core.messages import ToolMessage
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -13,10 +12,8 @@ if str(SRC_DIR) not in sys.path:
 
 from core.citations import (  # noqa: E402
     citation_from_document,
-    collect_citations,
-    ordered_citations,
-    render_citation_markers,
-    validate_citations,
+    deduplicate_citations,
+    format_tool_content,
 )
 from core.source_manager import SourceManager  # noqa: E402
 
@@ -71,26 +68,11 @@ def test_hadith_citation_has_deterministic_id_and_grading(tmp_path):
     assert record["grading"] == "Sahih — Scholar"
 
 
-def test_validation_rejects_unknown_and_missing_markers():
-    record = {
-        "id": "Q-2-255",
-        "kind": "quran",
-        "text": "x",
-        "title": "Al-Baqarah",
-        "locator": "Quran 2:255",
-        "grading": None,
-    }
-
-    assert not validate_citations("Answer [[cite:Q-9-9]]", [record]).valid
-    assert not validate_citations("Answer without a source", [record]).valid
-    assert validate_citations("Answer [[cite:Q-2-255]]", [record]).valid
-
-
-def test_collect_order_and_render_citations():
+def test_tool_content_uses_human_readable_sources_without_internal_ids():
     first = {
         "id": "Q-2-255",
         "kind": "quran",
-        "text": "x",
+        "text": "Allah—there is no deity except Him.",
         "title": "Al-Baqarah",
         "locator": "Quran 2:255",
         "grading": None,
@@ -103,37 +85,15 @@ def test_collect_order_and_render_citations():
         "locator": "Hadith 1",
         "grading": "Sahih",
     }
-    messages = [
-        ToolMessage(content="sources", artifact=[first, second, first], tool_call_id="call-1")
-    ]
 
-    records = collect_citations(messages)
-    answer = "Hadith [[cite:H-muslim-1]], verse [[cite:Q-2-255]], repeated [[cite:H-muslim-1]]."
+    records = deduplicate_citations([first, second, first])
+    content = format_tool_content(records)
 
     assert [item["id"] for item in records] == ["Q-2-255", "H-muslim-1"]
-    assert [item["id"] for item in ordered_citations(answer, records)] == ["H-muslim-1", "Q-2-255"]
-    rendered = render_citation_markers(answer, records)
-    assert "[[cite:" not in rendered
-    assert "[H-muslim-1]" in rendered
-
-
-def test_rendered_answer_escapes_model_generated_html():
-    record = {
-        "id": "Q-2-255",
-        "kind": "quran",
-        "text": "x",
-        "title": "Al-Baqarah",
-        "locator": "Quran 2:255",
-        "grading": None,
-    }
-
-    rendered = render_citation_markers(
-        '<img src=x onerror="alert(1)"> Evidence [[cite:Q-2-255]]', [record]
-    )
-
-    assert "<img" not in rendered
-    assert "&lt;img" in rendered
-    assert "[Q-2-255]" in rendered
+    assert "Source: Al-Baqarah — Quran 2:255" in content
+    assert "Source: Sahih Muslim — Hadith 1" in content
+    assert "Source ID:" not in content
+    assert "source_file" not in content
 
 
 def test_source_manager_rejects_path_traversal(tmp_path):

@@ -21,21 +21,22 @@ def test_chainlit_uses_local_safe_defaults():
 
 
 def test_custom_elements_do_not_render_raw_html_or_receive_source_paths():
-    citation = (ROOT / "public" / "elements" / "CitationCard.jsx").read_text(encoding="utf-8")
     key_form = (ROOT / "public" / "elements" / "ApiKeyForm.jsx").read_text(encoding="utf-8")
 
-    assert "dangerouslySetInnerHTML" not in citation
-    assert "source_file" not in citation
+    assert not (ROOT / "public" / "elements" / "CitationCard.jsx").exists()
     assert "props.apiKey" not in key_form
     assert "submitElement({ apiKey: value })" in key_form
     assert 'type={show ? "text" : "password"}' in key_form
 
 
-def test_graph_prompt_forbids_html_and_requires_source_ids():
+def test_graph_prompt_forbids_html_and_uses_normal_markdown_attribution():
     graph_source = (ROOT / "src" / "core" / "graph.py").read_text(encoding="utf-8")
 
     assert "Do not emit HTML" in graph_source
-    assert "[[cite:SOURCE_ID]]" in graph_source
+    assert "ordinary Markdown" in graph_source
+    assert "Quote only the relevant portion" in graph_source
+    assert "[[cite:" not in graph_source
+    assert "make_validation_node" not in graph_source
     assert "gemini-3.1-flash-lite-preview" not in graph_source
 
 

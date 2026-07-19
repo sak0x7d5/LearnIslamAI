@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Annotated, Any, TypedDict
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool, tool
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -14,25 +14,13 @@ from pydantic import SecretStr
 from core.citations import (
     CitationRecord,
     citation_from_document,
-    collect_citations,
     deduplicate_citations,
     format_tool_content,
-    validate_citations,
 )
 from core.config import DEFAULT_LLM_MODEL
 from core.coordinator import RAGCoordinator
-from core.message_utils import extract_final_ai_message_text
 from core.source_manager import SourceManager
 
-
-GROUNDING_FAILURE_MESSAGE = (
-    "I’m sorry, but I couldn’t produce an answer whose citations could be verified "
-    "against the retrieved Quran and Hadith records. Please try rephrasing the question."
-)
-NO_RESULTS_MESSAGE = (
-    "I couldn’t find a Quran or Hadith record that verifies an answer to that question. "
-    "Please try a more specific wording."
-)
 
 SYSTEM_PROMPT = """You are IslamAI, a careful retrieval assistant for Quran and Hadith.
 Answer only from records returned by the search tools. You are not a mufti and must not
@@ -45,8 +33,10 @@ Search behavior:
 
 Answer behavior:
 - Synthesize the retrieved evidence in respectful, clear Markdown.
-- Cite every source-dependent statement with the exact marker [[cite:SOURCE_ID]].
-- SOURCE_ID must be copied from a tool result. Never invent or alter an ID.
+- Quote only the relevant portion of a verse or Hadith when a shorter excerpt is clearer.
+- Attribute quotations and source-dependent claims in ordinary Markdown using the exact
+  human-readable collection and locator supplied by the tool, such as
+  "Sahih al-Bukhari, Hadith 2807" or "Quran 24:35".
 - Do not emit HTML. Do not expose file paths or internal metadata.
 - If the retrieved records do not support an answer, say so plainly.
 """
@@ -97,51 +87,6 @@ def make_chatbot(llm_with_tools: Any) -> Callable[..., Any]:
     return chatbot
 
 
-def make_validation_node(llm: Any) -> Callable[..., Any]:
-    async def validate_answer(
-        state: GraphState,
-        config: RunnableConfig,
-    ) -> dict[str, list[AIMessage]]:
-        messages = state["messages"]
-        answer = extract_final_ai_message_text(messages[-1]) if messages else ""
-        records = collect_citations(messages)
-        searched = any(isinstance(message, ToolMessage) for message in messages)
-        if searched and not records:
-            # Empty and failed searches carry no evidence. Replace any model-authored
-            # prose with a fixed response so an ungrounded answer cannot pass through.
-            return {"messages": [AIMessage(content=NO_RESULTS_MESSAGE)]}
-        if not searched:
-            return {"messages": [AIMessage(content=GROUNDING_FAILURE_MESSAGE)]}
-        validation = validate_citations(answer, records)
-        if answer and validation.valid:
-            return {}
-
-        if answer and records:
-            allowed = "\n".join(
-                f"- {record['id']}: {record['title']}, {record['locator']}" for record in records
-            )
-            repair_prompt = (
-                "Rewrite the draft so every source-dependent claim uses only the allowed "
-                "citation markers. Preserve the meaning, emit Markdown rather than HTML, "
-                "and do not add facts.\n\n"
-                f"Allowed citations:\n{allowed}\n\nDraft:\n{answer}"
-            )
-            repaired_message = await llm.ainvoke(
-                [
-                    SystemMessage(content="You repair citations; you do not answer from memory."),
-                    HumanMessage(content=repair_prompt),
-                ],
-                config=config,
-            )
-            repaired = extract_final_ai_message_text(repaired_message)
-            if repaired and validate_citations(repaired, records).valid:
-                return {"messages": [AIMessage(content=repaired)]}
-
-        return {"messages": [AIMessage(content=GROUNDING_FAILURE_MESSAGE)]}
-
-    return validate_answer
-
-
 def make_tool_node(tools: list[BaseTool]) -> Callable[..., Any]:
     """Execute tool calls without importing LangGraph's optional prebuilt bundle."""
     tools_by_name = {candidate.name: candidate for candidate in tools}
@@ -183,7 +128,7 @@ def make_tool_node(tools: list[BaseTool]) -> Callable[..., Any]:
 
 def _route_after_chatbot(state: GraphState) -> str:
     latest = state["messages"][-1]
-    return "tools" if getattr(latest, "tool_calls", None) else "validate"
+    return "tools" if getattr(latest, "tool_calls", None) else "end"
 
 
 def build_graph(
@@ -208,18 +153,15 @@ def build_graph(
         google_api_key=api_key,
     )
     chatbot = make_chatbot(llm.bind_tools(tools))
-    validate_answer = make_validation_node(llm)
 
     builder = StateGraph(GraphState)
     builder.add_node("chatbot", chatbot)
     builder.add_node("tools", make_tool_node(tools))
-    builder.add_node("validate", validate_answer)
     builder.add_edge(START, "chatbot")
     builder.add_conditional_edges(
         "chatbot",
         _route_after_chatbot,
-        {"tools": "tools", "validate": "validate"},
+        {"tools": "tools", "end": END},
     )
     builder.add_edge("tools", "chatbot")
-    builder.add_edge("validate", END)
     return builder.compile()
