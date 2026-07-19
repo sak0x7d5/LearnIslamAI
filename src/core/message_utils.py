@@ -1,10 +1,41 @@
 from collections.abc import Mapping, Sequence
+import json
 from typing import Any
 
-from langchain_core.messages import AIMessage, AIMessageChunk
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 
 
 TEXT_BLOCK_TYPES = {"text", "output_text"}
+INTERNAL_STEP_MARKER = "islamai_internal"
+
+
+def restore_conversation_messages(steps: Any) -> list[HumanMessage | AIMessage]:
+    """Restore only real user/assistant conversation, excluding setup UI."""
+    if not isinstance(steps, Sequence) or isinstance(steps, (str, bytes, bytearray)):
+        return []
+
+    messages: list[HumanMessage | AIMessage] = []
+    for step in steps:
+        if not isinstance(step, Mapping):
+            continue
+
+        metadata: Any = step.get("metadata") or {}
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except json.JSONDecodeError:
+                metadata = {}
+        if isinstance(metadata, Mapping) and metadata.get(INTERNAL_STEP_MARKER) is True:
+            continue
+
+        output = step.get("output")
+        if not isinstance(output, str) or not output:
+            continue
+        if step.get("type") == "user_message":
+            messages.append(HumanMessage(content=output))
+        elif step.get("type") == "assistant_message":
+            messages.append(AIMessage(content=output))
+    return messages
 
 
 def extract_text_content(content: Any) -> str:

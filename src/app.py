@@ -37,7 +37,8 @@ from core.knowledge_base import (
     UpdateStatus,
     build_staged_indexes,
 )
-from core.message_utils import extract_final_graph_answer
+from core.message_utils import extract_final_graph_answer, restore_conversation_messages
+from core.startup_status import StartupStatus
 from core.tool_steps import ToolStepPresenter
 
 
@@ -63,7 +64,10 @@ async def validate_google_api_key(key: SecretStr) -> ValidationResult:
             google_api_key=key,
             max_retries=0,
         )
-        await model.ainvoke([HumanMessage(content="Reply with the single word OK.")])
+        await asyncio.wait_for(
+            model.ainvoke([HumanMessage(content="Reply with the single word OK.")]),
+            timeout=30,
+        )
         return ValidationResult("valid", "Google API key validated.")
     except Exception as exc:  # provider exception types vary between SDK releases
         status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
@@ -83,9 +87,35 @@ initialize_database(str(DB_PATH))
 
 _api_keys = ApiKeyService(_env_file, validate_google_api_key)
 _knowledge_base = KnowledgeBaseService()
+_knowledge_base_task_lock = asyncio.Lock()
+_corpus_update_flow_lock = asyncio.Lock()
 _runtime_lock = asyncio.Lock()
+_knowledge_base_task: asyncio.Task[Any] | None = None
+_knowledge_base_ready = False
 _runtime_graph: Any | None = None
 _validated_key: SecretStr | None = None
+_startup_status = StartupStatus()
+
+INTERNAL_MESSAGE_METADATA = {"islamai_internal": True}
+
+
+def _internal(message: Any) -> Any:
+    """Mark setup/status UI so it is never restored into model history."""
+    message.metadata = dict(INTERNAL_MESSAGE_METADATA)
+    return message
+
+
+def _consume_task_result(task: asyncio.Task[Any]) -> None:
+    """Retrieve detached task failures without exposing exception text."""
+    if task.cancelled():
+        return
+    try:
+        failure = task.exception()
+    except Exception as exc:
+        logger.warning("Detached startup observer failed (%s).", type(exc).__name__)
+        return
+    if failure is not None:
+        logger.warning("Background knowledge-base setup failed (%s).", type(failure).__name__)
 
 
 @cl.data_layer
@@ -120,10 +150,7 @@ class BootstrapProgress:
 
     async def __call__(self, event: ProgressEvent) -> None:
         if event.phase == "ready":
-            for task in self.tasks.values():
-                task.status = cl.TaskStatus.DONE
-            self.task_list.status = "Ready"
-            await self.task_list.update()
+            await self.complete()
             return
 
         task = self.tasks.get(event.phase)
@@ -133,11 +160,19 @@ class BootstrapProgress:
         if event.total_items:
             base = task.title.split(" (", 1)[0]
             task.title = f"{base} ({event.current_item}/{event.total_items})"
+            if event.detail:
+                task.title += f" — {event.detail}"
         if event.phase == "index_quran":
             self.tasks["validating_corpus"].status = cl.TaskStatus.DONE
             self.tasks["loading_embeddings"].status = cl.TaskStatus.DONE
         elif event.phase == "index_hadith":
             self.tasks["index_quran"].status = cl.TaskStatus.DONE
+        await self.task_list.update()
+
+    async def complete(self) -> None:
+        for task in self.tasks.values():
+            task.status = cl.TaskStatus.DONE
+        self.task_list.status = "Ready"
         await self.task_list.update()
 
     async def fail(self) -> None:
@@ -173,6 +208,8 @@ class UpdateProgress:
         if event.total_items:
             base = task.title.split(" (", 1)[0]
             task.title = f"{base} ({event.current_item}/{event.total_items})"
+            if event.detail:
+                task.title += f" — {event.detail}"
         order = list(self.tasks)
         current_index = order.index(event.phase)
         for earlier in order[:current_index]:
@@ -193,29 +230,37 @@ class UpdateProgress:
 
 async def _request_google_key() -> SecretStr | None:
     for _ in range(3):
-        response = await cl.AskElementMessage(
-            content="A Google Gemini API key is required for answer generation.",
-            element=cl.CustomElement(
-                name="ApiKeyForm",
-                display="inline",
-                props={"purpose": "Gemini answer generation"},
-            ),
-            timeout=300,
-            raise_on_timeout=False,
-        ).send()
+        prompt = _internal(
+            cl.AskElementMessage(
+                content="A Google Gemini API key is required to answer this question.",
+                element=cl.CustomElement(
+                    name="ApiKeyForm",
+                    display="inline",
+                    props={"purpose": "Gemini answer generation"},
+                ),
+                timeout=300,
+                raise_on_timeout=False,
+            )
+        )
+        response = await prompt.send()
         if not response or not response.get("submitted"):
             return None
         raw_key = response.pop("apiKey", None)
         if not isinstance(raw_key, str) or not raw_key.strip():
-            await cl.Message(content="No API key was submitted.").send()
+            prompt.content = "No API key was submitted. Enter a non-empty key to continue."
+            await prompt.update()
             continue
         key = SecretStr(raw_key.strip())
         del raw_key
+        prompt.content = "Validating your Gemini API key with Google…"
+        await prompt.update()
         result = await _api_keys.validate_and_save(key)
         if result.is_valid:
-            await cl.Message(content="Google API key validated and saved locally.").send()
+            prompt.content = "Google API key validated and saved locally."
+            await prompt.update()
             return key
-        await cl.Message(content=result.message).send()
+        prompt.content = result.message
+        await prompt.update()
         if result.status == "unavailable":
             return None
     return None
@@ -227,114 +272,263 @@ async def _ensure_google_key() -> SecretStr | None:
         return _validated_key
     existing = _api_keys.read()
     if existing is not None:
+        status_message = _internal(
+            cl.Message(content="Validating the saved Gemini API key with Google…")
+        )
+        await status_message.send()
         result = await _api_keys.validate(existing)
         if result.is_valid:
+            status_message.content = "Saved Gemini API key validated."
+            await status_message.update()
             _validated_key = existing
             return existing
-        await cl.Message(content=result.message).send()
+        status_message.content = result.message
+        await status_message.update()
         if result.status == "unavailable":
             return None
     _validated_key = await _request_google_key()
     return _validated_key
 
 
-async def _maybe_check_corpus_update() -> None:
-    if not CORPUS_UPDATE_MANIFEST_URL or not _knowledge_base.update_prompt_due():
-        return
-    response = await cl.AskActionMessage(
-        content=(
-            "Check for and install a newer English Quran/Hadith corpus? "
-            "Choosing Later makes no network request."
-        ),
-        actions=[
-            cl.Action(name="check_corpus_update", label="Check now", payload={"approved": True}),
-            cl.Action(name="defer_corpus_update", label="Later", payload={"approved": False}),
-        ],
-        timeout=90,
-        raise_on_timeout=False,
-    ).send()
-    approved = bool(response and response.get("payload", {}).get("approved"))
-    try:
-        client = HttpCorpusUpdateClient(CORPUS_UPDATE_MANIFEST_URL)
-    except ValueError:
-        logger.error("ISLAMAI_CORPUS_MANIFEST_URL must be an HTTPS URL.")
-        return
+async def _maybe_check_corpus_update() -> bool:
+    global _knowledge_base_ready, _knowledge_base_task
 
-    progress = UpdateProgress() if approved else None
-    if progress is not None:
-        await progress.send()
-    try:
-        result = await _knowledge_base.check_for_updates(
-            approved=approved,
-            client=client,
-            index_builder=build_staged_indexes,
-            progress=progress,
+    if not CORPUS_UPDATE_MANIFEST_URL:
+        return False
+
+    if _corpus_update_flow_lock.locked():
+        await _internal(
+            cl.Message(content="Another chat is finishing the corpus-update choice…")
+        ).send()
+
+    async with _corpus_update_flow_lock:
+        if not _knowledge_base.update_prompt_due():
+            return False
+
+        # Claim the daily prompt before displaying it so two tabs cannot both
+        # open an update interaction. check_for_updates records the final choice.
+        _knowledge_base.manifest_tracker.record_update_prompt()
+        update_prompt = _internal(
+            cl.AskActionMessage(
+                content=(
+                    "Check for and install a newer English Quran/Hadith corpus? "
+                    "Choosing Later makes no network request."
+                ),
+                actions=[
+                    cl.Action(
+                        name="check_corpus_update",
+                        label="Check now",
+                        payload={"approved": True},
+                    ),
+                    cl.Action(
+                        name="defer_corpus_update", label="Later", payload={"approved": False}
+                    ),
+                ],
+                timeout=90,
+                raise_on_timeout=False,
+            )
         )
-    except Exception as exc:
-        logger.exception("Corpus update failed; retaining active corpus (%s).", type(exc).__name__)
+        response = await update_prompt.send()
+        approved = bool(response and response.get("payload", {}).get("approved"))
+        try:
+            client = HttpCorpusUpdateClient(CORPUS_UPDATE_MANIFEST_URL)
+        except ValueError:
+            logger.error("ISLAMAI_CORPUS_MANIFEST_URL must be an HTTPS URL.")
+            return False
+
+        progress = UpdateProgress() if approved else None
         if progress is not None:
-            await progress.fail()
-        await cl.Message(
-            content="The corpus update failed. IslamAI will use the last valid local corpus."
-        ).send()
-        return
-    if result.status == UpdateStatus.UP_TO_DATE:
-        await cl.Message(content="The local corpus is already up to date.").send()
-    elif result.status == UpdateStatus.INSTALLED:
-        await cl.Message(
-            content=f"Corpus {result.active_version} was validated and activated."
-        ).send()
+            await progress.send()
+        try:
+            result = await _knowledge_base.check_for_updates(
+                approved=approved,
+                client=client,
+                index_builder=build_staged_indexes,
+                progress=progress,
+            )
+        except Exception as exc:
+            logger.exception(
+                "Corpus update failed; retaining active corpus (%s).", type(exc).__name__
+            )
+            if progress is not None:
+                await progress.fail()
+            await _internal(
+                cl.Message(
+                    content=(
+                        "The corpus update failed. IslamAI will use the last valid local corpus."
+                    )
+                )
+            ).send()
+            return False
+        if result.status == UpdateStatus.UP_TO_DATE:
+            await _internal(cl.Message(content="The local corpus is already up to date.")).send()
+        elif result.status == UpdateStatus.INSTALLED:
+            _knowledge_base_ready = False
+            _knowledge_base_task = None
+            await _internal(
+                cl.Message(content=f"Corpus {result.active_version} was validated and activated.")
+            ).send()
+            return True
+        return False
 
 
-async def _initialize_runtime() -> bool:
+async def _run_knowledge_base_bootstrap() -> Any:
+    global _knowledge_base_ready
+    try:
+        report = await _knowledge_base.ensure_ready(_startup_status.record)
+    except Exception:
+        _startup_status.fail(
+            "The previous valid local corpus and indexes were retained. Restart the chat to retry."
+        )
+        raise
+    _knowledge_base_ready = True
+    return report
+
+
+async def _get_or_start_knowledge_base_task() -> asyncio.Task[Any] | None:
+    global _knowledge_base_task
+    if _knowledge_base_ready:
+        return None
+    async with _knowledge_base_task_lock:
+        if _knowledge_base_ready:
+            return None
+        if _knowledge_base_task is None or _knowledge_base_task.done():
+            _startup_status.begin()
+            _knowledge_base_task = asyncio.create_task(_run_knowledge_base_bootstrap())
+            _knowledge_base_task.add_done_callback(_consume_task_result)
+        return _knowledge_base_task
+
+
+async def _follow_knowledge_base_task(task: asyncio.Task[Any]) -> bool:
+    progress = BootstrapProgress()
+    await progress.send()
+    status_message = _internal(cl.Message(content=_startup_status.snapshot().render()))
+    await status_message.send()
+    last_version = -1
+
+    while not task.done():
+        snapshot = _startup_status.snapshot()
+        if snapshot.version != last_version:
+            if snapshot.event is not None:
+                await progress(snapshot.event)
+            status_message.content = snapshot.render()
+            await status_message.update()
+            last_version = snapshot.version
+        await asyncio.wait({task}, timeout=0.25)
+
+    snapshot = _startup_status.snapshot()
+    if snapshot.version != last_version:
+        if snapshot.event is not None:
+            await progress(snapshot.event)
+        status_message.content = snapshot.render()
+        await status_message.update()
+
+    try:
+        await asyncio.shield(task)
+    except Exception as exc:
+        logger.error("Knowledge-base initialization failed (%s).", type(exc).__name__)
+        await progress.fail()
+        return False
+
+    await progress.complete()
+    status_message.content = _startup_status.snapshot().render()
+    await status_message.update()
+    cl.user_session.set("knowledge_base_ready", True)
+    return True
+
+
+async def _ensure_knowledge_base(*, interactive_retry: bool) -> bool:
+    if _knowledge_base_ready:
+        cl.user_session.set("knowledge_base_ready", True)
+        return True
+
+    owns_bootstrap_ui = not cl.user_session.get("bootstrap_ui_active")
+    if owns_bootstrap_ui:
+        # Claim this session's progress UI before the first await. A reconnect
+        # observer and an immediate user message can otherwise create duplicates.
+        cl.user_session.set("bootstrap_ui_active", True)
+
+    try:
+        attempts = 2 if interactive_retry and owns_bootstrap_ui else 1
+        for attempt in range(attempts):
+            task = await _get_or_start_knowledge_base_task()
+            if task is None:
+                cl.user_session.set("knowledge_base_ready", True)
+                return True
+
+            if owns_bootstrap_ui:
+                if await _follow_knowledge_base_task(task):
+                    return True
+            else:
+                try:
+                    await asyncio.shield(task)
+                except Exception as exc:
+                    logger.error("Knowledge-base initialization failed (%s).", type(exc).__name__)
+                else:
+                    cl.user_session.set("knowledge_base_ready", True)
+                    return True
+
+            if attempt + 1 >= attempts:
+                break
+
+            retry_prompt = _internal(
+                cl.AskActionMessage(
+                    content="The local knowledge base could not be prepared.",
+                    actions=[
+                        cl.Action(name="retry_bootstrap", label="Retry", payload={"retry": True})
+                    ],
+                    timeout=120,
+                    raise_on_timeout=False,
+                )
+            )
+            response = await retry_prompt.send()
+            if not response or not response.get("payload", {}).get("retry"):
+                break
+    finally:
+        if owns_bootstrap_ui:
+            cl.user_session.set("bootstrap_ui_active", False)
+
+    cl.user_session.set("knowledge_base_ready", False)
+    return False
+
+
+async def _ensure_runtime() -> bool:
     global _runtime_graph
     if _runtime_graph is not None:
         cl.user_session.set("runtime_ready", True)
         return True
 
-    async with _runtime_lock:
-        if _runtime_graph is not None:
-            cl.user_session.set("runtime_ready", True)
-            return True
+    if not await _ensure_knowledge_base(interactive_retry=True):
+        cl.user_session.set("runtime_ready", False)
+        return False
 
-        key = await _ensure_google_key()
-        if key is None:
+    await _maybe_check_corpus_update()
+    if not _knowledge_base_ready:
+        if not await _ensure_knowledge_base(interactive_retry=True):
             cl.user_session.set("runtime_ready", False)
             return False
 
-        await _maybe_check_corpus_update()
+    key = await _ensure_google_key()
+    if key is None:
+        cl.user_session.set("runtime_ready", False)
+        return False
 
-        progress = BootstrapProgress()
-        await progress.send()
-        try:
-            await _knowledge_base.ensure_ready(progress)
-        except Exception as exc:
-            logger.exception("Knowledge-base initialization failed: %s", type(exc).__name__)
-            await progress.fail()
-            response = await cl.AskActionMessage(
-                content="The local knowledge base could not be prepared.",
-                actions=[cl.Action(name="retry_bootstrap", label="Retry", payload={"retry": True})],
-                timeout=120,
-                raise_on_timeout=False,
-            ).send()
-            if not response or not response.get("payload", {}).get("retry"):
-                cl.user_session.set("runtime_ready", False)
-                return False
-            try:
-                await _knowledge_base.ensure_ready(progress)
-            except Exception as retry_exc:
-                logger.exception("Knowledge-base retry failed: %s", type(retry_exc).__name__)
-                await progress.fail()
-                cl.user_session.set("runtime_ready", False)
-                return False
+    async with _runtime_lock:
+        if _runtime_graph is None:
+            _runtime_graph = build_graph(
+                api_key=key,
+                coordinator=_knowledge_base.coordinator,
+                model_name=DEFAULT_LLM_MODEL,
+            )
+    cl.user_session.set("runtime_ready", True)
+    return True
 
-        _runtime_graph = build_graph(
-            api_key=key,
-            coordinator=_knowledge_base.coordinator,
-            model_name=DEFAULT_LLM_MODEL,
-        )
-        cl.user_session.set("runtime_ready", True)
-        return True
+
+async def _resume_knowledge_base_observer() -> None:
+    # Chainlit emits the restored thread after on_chat_resume returns. Give that
+    # payload a chance to land before replaying the latest startup snapshot.
+    await asyncio.sleep(0.1)
+    await _ensure_knowledge_base(interactive_retry=False)
 
 
 @cl.set_starters
@@ -354,22 +548,18 @@ async def set_starters():
 @cl.on_chat_start
 async def on_chat_start():
     cl.user_session.set("messages", [])
-    await _initialize_runtime()
+    cl.user_session.set("runtime_ready", _runtime_graph is not None)
+    await _ensure_knowledge_base(interactive_retry=False)
 
 
 @cl.on_chat_resume
 async def on_chat_resume(thread: dict[str, Any]):
-    messages: list[HumanMessage | AIMessage] = []
-    for step in thread.get("steps", []):
-        output = step.get("output")
-        if not isinstance(output, str) or not output:
-            continue
-        if step.get("type") == "user_message":
-            messages.append(HumanMessage(content=output))
-        elif step.get("type") == "assistant_message":
-            messages.append(AIMessage(content=output))
-    cl.user_session.set("messages", messages)
-    await _initialize_runtime()
+    cl.user_session.set("messages", restore_conversation_messages(thread.get("steps", [])))
+    cl.user_session.set("runtime_ready", _runtime_graph is not None)
+    cl.user_session.set("knowledge_base_ready", _knowledge_base_ready)
+    if not _knowledge_base_ready:
+        observer = asyncio.create_task(_resume_knowledge_base_observer())
+        observer.add_done_callback(_consume_task_result)
 
 
 def _citation_elements(records: list[CitationRecord]) -> list[cl.CustomElement]:
@@ -383,9 +573,26 @@ def _citation_elements(records: list[CitationRecord]) -> list[cl.CustomElement]:
 async def on_message(message: cl.Message):
     global _runtime_graph, _validated_key
 
-    if not cl.user_session.get("runtime_ready") and not await _initialize_runtime():
-        await cl.Message(
-            content="IslamAI is not ready. Restart the chat when the API key or local corpus issue is resolved."
+    if not cl.user_session.get("knowledge_base_ready") and not await _ensure_knowledge_base(
+        interactive_retry=True
+    ):
+        await _internal(
+            cl.Message(
+                content="IslamAI local search is not ready. Restart the chat to retry safely."
+            )
+        ).send()
+        return
+
+    if (
+        _runtime_graph is None or not cl.user_session.get("runtime_ready")
+    ) and not await _ensure_runtime():
+        await _internal(
+            cl.Message(
+                content=(
+                    "IslamAI cannot answer yet. Retry when the Gemini key or local corpus issue "
+                    "is resolved."
+                )
+            )
         ).send()
         return
 
@@ -400,6 +607,7 @@ async def on_message(message: cl.Message):
         # recovers from a revoked key without retaining a broken graph client.
         _runtime_graph = None
         _validated_key = None
+        cl.user_session.set("runtime_ready", False)
         await cl.Message(
             content="I’m sorry, the answer service failed safely. Please try again later."
         ).send()

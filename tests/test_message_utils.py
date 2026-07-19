@@ -15,6 +15,7 @@ from core.message_utils import (  # noqa: E402
     extract_root_graph_answer,
     extract_root_graph_output,
     extract_text_content,
+    restore_conversation_messages,
 )
 
 
@@ -89,3 +90,28 @@ def test_final_graph_answer_requires_terminal_ai_message():
     }
 
     assert extract_final_graph_answer(output) == ""
+
+
+def test_restore_conversation_excludes_internal_setup_steps():
+    steps = [
+        {
+            "type": "assistant_message",
+            "output": "Preparing local indexes",
+            "metadata": {"islamai_internal": True},
+        },
+        {"type": "user_message", "output": "What is the verse of light?"},
+        {
+            "type": "assistant_message",
+            "output": "Key validated",
+            "metadata": '{"islamai_internal": true}',
+        },
+        {"type": "assistant_message", "output": "A grounded answer."},
+    ]
+
+    restored = restore_conversation_messages(steps)
+
+    assert [type(message) for message in restored] == [HumanMessage, AIMessage]
+    assert [message.content for message in restored] == [
+        "What is the verse of light?",
+        "A grounded answer.",
+    ]
