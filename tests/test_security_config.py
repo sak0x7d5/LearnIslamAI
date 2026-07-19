@@ -16,23 +16,40 @@ def test_chainlit_uses_local_safe_defaults():
     ]
     assert config["features"]["unsafe_allow_html"] is False
     assert config["features"]["spontaneous_file_upload"]["enabled"] is False
+    assert config["features"]["spontaneous_file_upload"]["accept"] == ["text/plain"]
     assert config["UI"]["cot"] == "tool_call"
     assert config["project"]["persist_user_env"] is False
 
 
 def test_custom_elements_do_not_render_raw_html_or_receive_source_paths():
     key_form = (ROOT / "public" / "elements" / "ApiKeyForm.jsx").read_text(encoding="utf-8")
+    answer_view = (ROOT / "public" / "elements" / "AnswerView.jsx").read_text(encoding="utf-8")
 
     assert not (ROOT / "public" / "elements" / "CitationCard.jsx").exists()
     assert "props.apiKey" not in key_form
     assert "submitElement({ apiKey: value })" in key_form
     assert 'type={show ? "text" : "password"}' in key_form
+    assert "dangerouslySetInnerHTML" not in answer_view
+    assert "<Markdown allowHtml={false} renderMarkdown={true}>" in answer_view
 
 
-def test_graph_prompt_forbids_html_and_uses_normal_markdown_attribution():
+def test_app_uses_permissive_semantic_rendering_and_local_element_persistence():
+    app_source = (ROOT / "src" / "app.py").read_text(encoding="utf-8")
+
+    assert "IslamAIDataLayer(conninfo=DB_URL)" in app_source
+    assert "render_semantic_answer(final_answer, run.tool_artifacts)" in app_source
+    assert 'name="AnswerView"' in app_source
+    assert 'props={"blocks": rendered["blocks"]}' in app_source
+    assert "validate_citation_markers" not in app_source
+    assert "repair" not in _called_functions(app_source, "on_message")
+
+
+def test_graph_prompt_allows_only_semantic_source_tags():
     graph_source = (ROOT / "src" / "core" / "graph.py").read_text(encoding="utf-8")
 
-    assert "Do not emit HTML" in graph_source
+    assert '<quran ref="SOURCE_ID">...</quran>' in graph_source
+    assert '<hadith ref="SOURCE_ID">...</hadith>' in graph_source
+    assert "do not emit any other HTML" in graph_source
     assert "ordinary Markdown" in graph_source
     assert "Quote only the relevant portion" in graph_source
     assert "[[cite:" not in graph_source

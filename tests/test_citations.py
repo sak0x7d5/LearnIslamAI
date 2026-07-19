@@ -68,7 +68,7 @@ def test_hadith_citation_has_deterministic_id_and_grading(tmp_path):
     assert record["grading"] == "Sahih — Scholar"
 
 
-def test_tool_content_uses_human_readable_sources_without_internal_ids():
+def test_tool_content_exposes_reference_ids_without_local_paths():
     first = {
         "id": "Q-2-255",
         "kind": "quran",
@@ -90,9 +90,10 @@ def test_tool_content_uses_human_readable_sources_without_internal_ids():
     content = format_tool_content(records)
 
     assert [item["id"] for item in records] == ["Q-2-255", "H-muslim-1"]
+    assert "Reference: Q-2-255" in content
+    assert "Reference: H-muslim-1" in content
     assert "Source: Al-Baqarah — Quran 2:255" in content
     assert "Source: Sahih Muslim — Hadith 1" in content
-    assert "Source ID:" not in content
     assert "source_file" not in content
 
 

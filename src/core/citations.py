@@ -103,6 +103,8 @@ def format_tool_content(records: list[CitationRecord]) -> str:
     for record in records:
         grading = f"\nGrading: {record['grading']}" if record["grading"] else ""
         blocks.append(
-            f"Source: {record['title']} — {record['locator']}{grading}\nText: {record['text']}"
+            f"Reference: {record['id']}\n"
+            f"Source: {record['title']} — {record['locator']}{grading}\n"
+            f"Text: {record['text']}"
         )
     return "\n\n---\n\n".join(blocks)

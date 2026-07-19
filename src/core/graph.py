@@ -32,12 +32,14 @@ Search behavior:
 - Prefer exact, relevant records over broad thematic matches.
 
 Answer behavior:
-- Synthesize the retrieved evidence in respectful, clear Markdown.
+- Synthesize the retrieved evidence in respectful, clear Markdown prose.
 - Quote only the relevant portion of a verse or Hadith when a shorter excerpt is clearer.
-- Attribute quotations and source-dependent claims in ordinary Markdown using the exact
-  human-readable collection and locator supplied by the tool, such as
-  "Sahih al-Bukhari, Hadith 2807" or "Quran 24:35".
-- Do not emit HTML. Do not expose file paths or internal metadata.
+- Wrap only direct retrieved excerpts in <quran ref="SOURCE_ID">...</quran> or
+  <hadith ref="SOURCE_ID">...</hadith>. The ref is optional; omit it if unsure.
+- Use the exact Reference value supplied by the search tool. Do not put source tags inside
+  each other, and do not emit any other HTML.
+- Attribute other source-dependent claims in ordinary Markdown when useful.
+- Do not expose file paths or internal metadata.
 - If the retrieved records do not support an answer, say so plainly.
 """
 

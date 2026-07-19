@@ -28,6 +28,7 @@ src/data/chat_history.db
 *.log
 .tmp/
 .cache/
+.files/
 
 # Local release/runtime state
 .uv/

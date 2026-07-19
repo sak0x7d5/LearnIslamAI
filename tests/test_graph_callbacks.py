@@ -63,8 +63,8 @@ def test_search_tool_returns_content_and_structured_artifact(tmp_path):
     )
     content, artifact = quran_tool.func("throne verse", 5)
 
+    assert "Reference: Q-2-255" in content
     assert "Source: Al-Baqarah — Quran 2:255" in content
-    assert "Source ID:" not in content
     assert artifact[0]["id"] == "Q-2-255"
     assert "source_file" not in artifact[0]
 

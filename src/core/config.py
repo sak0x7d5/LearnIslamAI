@@ -75,6 +75,7 @@ CORPUS_MANIFEST_PATH = BUNDLED_DATA_DIR / "corpus-manifest.json"
 
 DB_PATH = APP_HOME / "chat_history.db"
 DB_URL = f"sqlite+aiosqlite:///{DB_PATH.as_posix()}"
+CHAINLIT_FILES_DIR = APP_HOME / "runtime_files"
 DEFAULT_MANIFEST = STATE_DIR / "processing-manifest.json"
 UPDATE_STATE_PATH = STATE_DIR / "update-state.json"
 

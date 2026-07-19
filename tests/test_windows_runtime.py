@@ -190,6 +190,13 @@ def test_default_app_home_does_not_duplicate_application_name(monkeypatch) -> No
     assert captured == {"appname": "IslamAI", "appauthor": False, "roaming": False}
 
 
+def test_chainlit_session_files_use_the_mutable_app_home() -> None:
+    import core.config as config
+
+    assert config.CHAINLIT_FILES_DIR == config.APP_HOME / "runtime_files"
+    assert config.ROOT_DIR not in config.CHAINLIT_FILES_DIR.parents
+
+
 def test_direct_runtime_rejects_unsafe_app_home_values() -> None:
     import core.config as config
 

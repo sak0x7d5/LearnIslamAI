@@ -6,21 +6,24 @@ import secrets
 from typing import Any
 
 import chainlit as cl
-from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
+import chainlit.config as chainlit_config
 from chainlit.utils import utc_now
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import SecretStr
 
+from core.answer_rendering import render_semantic_answer
 from core.api_keys import ApiKeyService, EnvFileService, ValidationResult
 from core.config import (
     CORPUS_UPDATE_MANIFEST_URL,
+    CHAINLIT_FILES_DIR,
     DB_PATH,
     DB_URL,
     DEFAULT_LLM_MODEL,
     ROOT_DIR,
     logger,
 )
+from core.data_layer import IslamAIDataLayer
 from core.database import initialize_database
 from core.graph import build_graph
 from core.graph_events import collect_graph_run
@@ -32,7 +35,6 @@ from core.knowledge_base import (
     build_staged_indexes,
 )
 from core.message_utils import (
-    escape_model_markdown,
     extract_final_graph_answer,
     restore_conversation_messages,
 )
@@ -82,6 +84,8 @@ async def validate_google_api_key(key: SecretStr) -> ValidationResult:
 
 ensure_auth_secret()
 initialize_database(str(DB_PATH))
+CHAINLIT_FILES_DIR.mkdir(parents=True, exist_ok=True)
+chainlit_config.FILES_DIRECTORY = CHAINLIT_FILES_DIR
 
 _api_keys = ApiKeyService(_env_file, validate_google_api_key)
 _knowledge_base = KnowledgeBaseService()
@@ -118,7 +122,7 @@ def _consume_task_result(task: asyncio.Task[Any]) -> None:
 
 @cl.data_layer
 def get_data_layer():
-    return SQLAlchemyDataLayer(conninfo=DB_URL)
+    return IslamAIDataLayer(conninfo=DB_URL)
 
 
 @cl.header_auth_callback
@@ -624,7 +628,23 @@ async def on_message(message: cl.Message):
         ).send()
         return
 
-    rendered = escape_model_markdown(final_answer)
-    await cl.Message(content=rendered).send()
-    messages.append(AIMessage(content=rendered))
+    rendered = render_semantic_answer(final_answer, run.tool_artifacts)
+    fallback_markdown = rendered["fallback_markdown"]
+    if not fallback_markdown:
+        await cl.Message(
+            content="I’m sorry, I couldn’t generate an answer. Please try again."
+        ).send()
+        return
+
+    elements = []
+    if rendered["has_cards"]:
+        elements.append(
+            cl.CustomElement(
+                name="AnswerView",
+                display="inline",
+                props={"blocks": rendered["blocks"]},
+            )
+        )
+    await cl.Message(content=fallback_markdown, elements=elements).send()
+    messages.append(AIMessage(content=fallback_markdown))
     cl.user_session.set("messages", messages)
