@@ -18,6 +18,7 @@ def test_chainlit_uses_local_safe_defaults():
     assert config["features"]["spontaneous_file_upload"]["enabled"] is False
     assert config["features"]["spontaneous_file_upload"]["accept"] == ["text/plain"]
     assert config["UI"]["cot"] == "tool_call"
+    assert config["UI"]["custom_css"] == ("/public/stylesheet.css?v=0.1.0-answer-view-2")
     assert config["project"]["persist_user_env"] is False
 
 

@@ -23,6 +23,8 @@ def test_answer_view_uses_safe_whole_answer_blocks():
     assert "quran: Object.freeze({" in source
     assert "hadith: Object.freeze({" in source
     assert 'className="islamai-answer-view"' in source
+    assert "const ANSWER_VIEW_STYLES = String.raw`" in source
+    assert "<style>{ANSWER_VIEW_STYLES}</style>" in source
 
 
 def test_answer_view_does_not_accept_model_generated_markup_or_dom_code():
@@ -61,7 +63,8 @@ def test_source_cards_copy_quote_and_trusted_footer_accessibly():
 
 
 def test_source_card_styles_are_scoped_responsive_and_motion_safe():
-    css = STYLESHEET.read_text(encoding="utf-8")
+    css = ANSWER_VIEW.read_text(encoding="utf-8")
+    global_css = STYLESHEET.read_text(encoding="utf-8")
 
     assert ".islamai-source-card--quran" in css
     assert ".islamai-source-card--hadith" in css
@@ -72,17 +75,14 @@ def test_source_card_styles_are_scoped_responsive_and_motion_safe():
     assert "@media (max-width: 40rem)" in css
     assert "@media (prefers-reduced-motion: reduce)" in css
     assert ".islamai-source-card__copy:focus-visible" in css
+    assert ".islamai-source-card" not in global_css
 
 
 def test_fallback_hiding_is_limited_to_the_answer_message_content():
-    css = STYLESHEET.read_text(encoding="utf-8")
+    css = ANSWER_VIEW.read_text(encoding="utf-8")
 
-    selector = (
-        ".message-content:has(.inline-custom .islamai-answer-view)\n"
-        "  > .flex.flex-col.gap-4:first-child"
-    )
-    assert selector in css
     assert ".message-content:has(.inline-custom .islamai-answer-view)" in css
+    assert "> .flex.flex-col.gap-4:first-child" in css
     assert ".message-content {" not in css
     assert ".message-buttons" not in css
 
