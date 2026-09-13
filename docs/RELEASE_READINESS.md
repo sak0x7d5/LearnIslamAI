@@ -1,13 +1,14 @@
 # IslamAI v0.1 release-readiness report
 
-Report date: 2026-07-19
+Report date: 2026-07-19; status updated 2026-09-13
 
-Candidate: `codex/oss-v0.1-foundation`
+Candidate: `main` (the merged `codex/oss-v0.1-foundation` line)
 
-Status: **TECHNICAL RELEASE CANDIDATE; NOT READY FOR PUBLICATION**
+Status: **PUBLIC SOURCE, NO TAGGED RELEASE; CORPUS RIGHTS STILL UNRESOLVED**
 
-This is the local evidence ledger for the v0.1 foundation. It does not authorize
-a push, tag, public repository, or release.
+This is the evidence ledger for the v0.1 foundation. The repository is public
+and `main` is pushed at the owner's direction; this report does not authorize
+a version tag or a distributed release.
 
 ## Gates
 
@@ -22,7 +23,7 @@ a push, tag, public repository, or release.
 | Secret and UI safety | Pass | Key validation/non-disclosure, escaped fallback Markdown, self-styled allowlisted React source cards, mixed-cache-compatible versioned CSS, one correctly parented search activity, loopback binding, and hardened Chainlit configuration passed |
 | Documentation | Pass (local) | Installation, data, privacy, updates, troubleshooting, testing, cleanup, limitations, disclaimer, governance, and security are documented |
 | Corpus redistribution rights | **Blocked** | Permission/license for each exact English translation and third-party grading text is unresolved |
-| Public-operation authorization | **Blocked by policy** | Push, tag, publication, and remote changes were not requested or performed |
+| Public-operation authorization | Push directed by owner (2026-09-13) | Source publication was requested by the owner; tagging a release remains gated on the corpus rights item above |
 
 ## Verification record
 
@@ -93,8 +94,6 @@ report is updated.
 3. The Surah-name lookup is marked `review_required`; the source and
    redistribution basis of the project metadata it was adapted from still need
    evidence.
-4. Public Git activity is outside the authorization for this foundation run.
-
-See `THIRD_PARTY_NOTICES.md` for the detailed provenance audit. The codebase may
-be treated as a local technical release candidate, but it must not be described
-or distributed as publication-ready until blockers 1-3 are resolved.
+See `THIRD_PARTY_NOTICES.md` for the detailed provenance audit. The source is
+public, but no version should be tagged or described as a release until
+blockers 1-3 are resolved or the affected assets are removed from the bundle.
