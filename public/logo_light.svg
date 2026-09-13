@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 36" width="168" height="36" role="img" aria-label="IslamAI">
+  <g fill="none" stroke="#167a55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 28.5A3.5 3.5 0 0 1 9.5 25H28"/>
+    <path d="M9.5 4H28v28H9.5A3.5 3.5 0 0 1 6 28.5v-21A3.5 3.5 0 0 1 9.5 4z"/>
+    <path d="M13 11h9M13 16h9"/>
+  </g>
+  <text x="38" y="25" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="600" letter-spacing="-0.02em" fill="#19231f">Islam<tspan fill="#167a55">AI</tspan></text>
+</svg>

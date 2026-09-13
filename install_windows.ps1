@@ -264,6 +264,10 @@ function New-ChainlitRuntimeRoot {
         [System.Text.UTF8Encoding]::new($false)
     )
 
+    # Chainlit reads UI strings from <app root>/.chainlit/translations and fills
+    # in its own defaults when the folder is missing, which would drop the
+    # project's customized footer disclaimer.
+    Copy-Item -LiteralPath (Join-Path $ProjectRoot ".chainlit\translations") -Destination $runtimeConfigDir -Recurse
     Copy-Item -LiteralPath (Join-Path $ProjectRoot "public") -Destination $runtimeApp -Recurse
     Copy-Item -LiteralPath (Join-Path $ProjectRoot "chainlit.md") -Destination $runtimeApp
     return $runtimeApp
