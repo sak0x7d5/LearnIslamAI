@@ -87,8 +87,9 @@ report is updated.
    upstream URL, or redistribution grant.
 2. The ten English Hadith files trace to an API repository licensed under the
    Unlicense, which does not establish rights to the underlying translations;
-   translator/publisher terms and the immutable commit behind upstream ref `1`
-   are unresolved.
+   translator/publisher terms are unresolved. (The upstream ref `1` was pinned
+   to commit `df57907be352` on 2026-09-13 and all ten files verified
+   byte-for-byte, so the provenance half of this item is closed.)
 3. The Surah-name lookup is marked `review_required`; the source and
    redistribution basis of the project metadata it was adapted from still need
    evidence.
