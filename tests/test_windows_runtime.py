@@ -30,7 +30,7 @@ BANNED_PACKAGES = {
     "torchaudio",
     "torchvision",
 }
-DEV_PACKAGES = {"pytest", "pytest-asyncio", "pytest-mock", "ruff"}
+DEV_PACKAGES = {"pytest", "pytest-asyncio", "pytest-mock", "pyyaml", "ruff"}
 
 
 def _dependency_names(dependencies: list[str]) -> set[str]:

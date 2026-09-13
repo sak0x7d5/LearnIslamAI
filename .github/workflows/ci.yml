@@ -22,7 +22,8 @@ jobs:
     env:
       GOOGLE_API_KEY: ci-placeholder-not-used
       GEMINI_MODEL: gemini-3.1-flash-lite
-      ISLAMAI_HOME: ${{ runner.temp }}\IslamAI
+      # The runner context is not available in job-level env; github.workspace is.
+      ISLAMAI_HOME: ${{ github.workspace }}\.test-state\IslamAI
       PYTHONUTF8: "1"
 
     steps:
