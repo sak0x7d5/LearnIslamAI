@@ -196,6 +196,70 @@ def test_runtime_origin_rewrite_accepts_default_and_custom_ports() -> None:
     assert result.returncode == 0, result.stderr
 
 
+def _installer_function_prelude(function_name: str) -> str:
+    escaped_path = str(INSTALLER_PATH).replace("'", "''")
+    return (
+        "$tokens=$null; $errors=$null; "
+        f"$ast=[System.Management.Automation.Language.Parser]::ParseFile('{escaped_path}', "
+        "[ref]$tokens, [ref]$errors); "
+        "$function=$ast.Find({ param($node) "
+        "$node -is [System.Management.Automation.Language.FunctionDefinitionAst] "
+        f"-and $node.Name -eq '{function_name}' }}, $true); "
+        f"if ($null -eq $function) {{ throw '{function_name} not found.' }}; "
+        "Invoke-Expression $function.Extent.Text; "
+    )
+
+
+def test_launch_port_falls_back_only_when_not_explicit() -> None:
+    powershell_test = _installer_function_prelude("Resolve-LaunchPort") + (
+        "$busyBelow8002={ param($p) if ($p -lt 8002) { 'Occupied' } else { 'Free' } }; "
+        "$free={ param($p) 'Free' }; "
+        "$runningAt8001={ param($p) if ($p -eq 8000) { 'Occupied' } "
+        "elseif ($p -eq 8001) { 'IslamAI' } else { 'Free' } }; "
+        "$allBusy={ param($p) 'Occupied' }; "
+        "$r=Resolve-LaunchPort -RequestedPort 8000 -Explicit $false -Probe $free; "
+        "if ($r.Port -ne 8000 -or $r.State -ne 'Free') { throw 'Free default port was not kept.' }; "
+        "$r=Resolve-LaunchPort -RequestedPort 8000 -Explicit $false -Probe $busyBelow8002; "
+        "if ($r.Port -ne 8002 -or $r.State -ne 'Free') { throw 'Did not skip to the next free port.' }; "
+        "$r=Resolve-LaunchPort -RequestedPort 8000 -Explicit $false -Probe $runningAt8001; "
+        "if ($r.Port -ne 8001 -or $r.State -ne 'IslamAI') { throw 'Running instance was not detected.' }; "
+        "$explicitThrew=$false; try { Resolve-LaunchPort -RequestedPort 8000 -Explicit $true "
+        "-Probe $busyBelow8002 } catch { $explicitThrew=$_.ToString() }; "
+        "if (-not $explicitThrew -or -not $explicitThrew.Contains('Choose a free -Port value')) "
+        "{ throw 'Explicit occupied port did not fail loudly.' }; "
+        "$exhaustedThrew=$false; try { Resolve-LaunchPort -RequestedPort 8000 -Explicit $false "
+        "-Probe $allBusy -MaxAttempts 3 } catch { $exhaustedThrew=$_.ToString() }; "
+        "if (-not $exhaustedThrew -or -not $exhaustedThrew.Contains('No free loopback port')) "
+        "{ throw 'Exhausted scan did not fail.' }"
+    )
+    result = subprocess.run(
+        [
+            "powershell.exe",
+            "-NoLogo",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            powershell_test,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_launcher_uses_resolved_port_before_configuring_runtime() -> None:
+    installer = INSTALLER_PATH.read_text(encoding="utf-8")
+
+    resolve = installer.index('-Explicit $PSBoundParameters.ContainsKey("Port")')
+    reassign = installer.index("$Port = $resolved.Port")
+    runtime_env = installer.index("Set-IslamAiRuntimeEnvironment\n")
+    runtime_root = installer.index("New-ChainlitRuntimeRoot -CandidatePort $Port")
+    assert resolve < reassign < runtime_env < runtime_root
+    assert "IslamAI will use free port" in installer
+
+
 def test_powershell_installer_parses() -> None:
     escaped_path = str(INSTALLER_PATH).replace("'", "''")
     parse_command = (

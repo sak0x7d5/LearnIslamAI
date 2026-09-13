@@ -228,6 +228,32 @@ function Get-LoopbackServiceState {
     }
 }
 
+function Resolve-LaunchPort {
+    param(
+        [Parameter(Mandatory = $true)][int] $RequestedPort,
+        [Parameter(Mandatory = $true)][bool] $Explicit,
+        [scriptblock] $Probe = ${function:Get-LoopbackServiceState},
+        [int] $MaxAttempts = 20
+    )
+
+    # A double-clicked launcher cannot pass -Port, so an occupied default port
+    # must not be a dead end. An explicit -Port is honoured exactly.
+    $candidate = $RequestedPort
+    for ($attempt = 0; $attempt -le $MaxAttempts; $attempt++) {
+        $state = & $Probe $candidate
+        if ($state -eq "IslamAI" -or $state -eq "Free") {
+            return [PSCustomObject]@{ Port = $candidate; State = $state }
+        }
+        if ($Explicit) {
+            throw "Port $candidate is already used by another local service. Choose a free -Port value."
+        }
+        if ($candidate -ge 65535) {
+            break
+        }
+        $candidate++
+    }
+    throw "No free loopback port was found from $RequestedPort to $candidate. Choose a free -Port value."
+}
 function Get-ChainlitRuntimeConfig {
     param(
         [Parameter(Mandatory = $true)][string] $ConfigText,
@@ -291,14 +317,15 @@ function Remove-ChainlitRuntimeRoot {
 
 try {
     if ($Launch) {
-        $loopbackState = Get-LoopbackServiceState -CandidatePort $Port
-        if ($loopbackState -eq "IslamAI") {
-            Write-Host "IslamAI is already available at http://127.0.0.1:$Port."
+        $resolved = Resolve-LaunchPort -RequestedPort $Port -Explicit $PSBoundParameters.ContainsKey("Port")
+        if ($resolved.State -eq "IslamAI") {
+            Write-Host "IslamAI is already available at http://127.0.0.1:$($resolved.Port)."
             Write-Host "Open that address instead of starting a duplicate server."
             return
         }
-        if ($loopbackState -eq "Occupied") {
-            throw "Port $Port is already used by another local service. Choose a free -Port value."
+        if ($resolved.Port -ne $Port) {
+            Write-Host "Port $Port is used by another local service; IslamAI will use free port $($resolved.Port) instead."
+            $Port = $resolved.Port
         }
     }
 
