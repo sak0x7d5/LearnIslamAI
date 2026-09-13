@@ -1,0 +1,8 @@
+# Bundled corpus assets are verified byte-for-byte against SHA-256 hashes in
+# src/data/corpus-manifest.json. Never apply end-of-line conversion to them, or
+# a Windows checkout with core.autocrlf=true fails corpus validation.
+src/data/** -text
+
+# Windows launchers must keep CRLF so cmd.exe parses them reliably.
+*.bat text eol=crlf
+*.ps1 text eol=crlf

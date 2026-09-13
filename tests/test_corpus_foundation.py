@@ -56,6 +56,23 @@ def test_bundled_english_corpus_matches_immutable_manifest():
     assert sorted(path.name for path in (DATA_ROOT / "quran").iterdir()) == ["english", "metadata"]
 
 
+def test_corpus_assets_are_exempt_from_line_ending_conversion():
+    """Hash-verified assets must reach every checkout byte-for-byte.
+
+    Git for Windows defaults to core.autocrlf=true, which rewrites LF to CRLF on
+    checkout and breaks the SHA-256 validation of pretty-printed assets such as
+    the Surah-name lookup.
+    """
+
+    attributes = (PROJECT_ROOT / ".gitattributes").read_text(encoding="utf-8").splitlines()
+    rules = [line.split() for line in attributes if line.strip() and not line.startswith("#")]
+    assert ["src/data/**", "-text"] in rules
+
+    manifest = CorpusManifest.load(CORPUS_MANIFEST)
+    for asset in manifest.assets:
+        assert bytes([13]) not in (DATA_ROOT / asset.path).read_bytes(), asset.path
+
+
 def test_quran_processor_reads_compact_schema_and_surah_names(tmp_path):
     quran_dir = tmp_path / "quran" / "english"
     metadata_dir = tmp_path / "quran" / "metadata"

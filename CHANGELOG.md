@@ -35,6 +35,15 @@ first public release.
 - Source-card CSS is carried by the trusted `AnswerView` component and mirrored
   in a versioned global stylesheet, so either cached asset can be stale safely.
 
+### Fixed
+
+- Corpus manifest hashes are now computed from the canonical LF bytes Git stores,
+  and `.gitattributes` exempts `src/data/` from end-of-line conversion. Previously
+  eleven hashes matched only a Windows checkout with `core.autocrlf=true`, and the
+  Surah-name lookup matched only an LF checkout, so first-run corpus validation
+  failed on every platform. Corpus version `2026.09.13.1` (release sequence 2)
+  carries the corrected manifest; the corpus bytes are unchanged.
+
 ### Security
 
 - Disabled raw HTML, arbitrary uploads, wildcard origins, and full
