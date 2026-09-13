@@ -75,7 +75,8 @@ def test_source_card_styles_are_scoped_responsive_and_motion_safe():
     assert "@media (max-width: 40rem)" in css
     assert "@media (prefers-reduced-motion: reduce)" in css
     assert ".islamai-source-card__copy:focus-visible" in css
-    assert ".islamai-source-card" not in global_css
+    assert ".islamai-source-card" in global_css
+    assert "Compatibility copy: AnswerView also carries" in global_css
 
 
 def test_fallback_hiding_is_limited_to_the_answer_message_content():

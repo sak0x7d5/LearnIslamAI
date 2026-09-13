@@ -19,7 +19,7 @@ a push, tag, public repository, or release.
 | Corpus integrity | Pass | Manifest hashes and schemas validate 6,236 Quran verses, 36,512 raw Hadith records, 36,097 text-bearing Hadith records, and 114 Surah names |
 | Retrieval and attribution | Pass | BGE instruction, 384-dimensional normalized embeddings, token limits, reviewed retrieval queries, path-free records, partial-excerpt matching, and permissive trusted card footers passed |
 | Startup/update safety | Pass | Single-flight startup, failed-ingestion retry, decline-without-network, staged validation, atomic activation, failure preservation, and rollback passed |
-| Secret and UI safety | Pass | Key validation/non-disclosure, escaped fallback Markdown, self-styled allowlisted React source cards, versioned global CSS, one correctly parented search activity, loopback binding, and hardened Chainlit configuration passed |
+| Secret and UI safety | Pass | Key validation/non-disclosure, escaped fallback Markdown, self-styled allowlisted React source cards, mixed-cache-compatible versioned CSS, one correctly parented search activity, loopback binding, and hardened Chainlit configuration passed |
 | Documentation | Pass (local) | Installation, data, privacy, updates, troubleshooting, testing, cleanup, limitations, disclaimer, governance, and security are documented |
 | Corpus redistribution rights | **Blocked** | Permission/license for each exact English translation and third-party grading text is unresolved |
 | Public-operation authorization | **Blocked by policy** | Push, tag, publication, and remote changes were not requested or performed |
@@ -65,7 +65,7 @@ full local index: 43,814 chunks; 384 dimensions; normalized vector norm 1.0
 token audit: maximum persisted chunk 389 tokens against the 512-token model limit
 reviewed retrieval: Quran 24:35, Quran 2:256, and Sahih al-Bukhari 1 returned at rank 1
 warm offline bootstrap: 0 sources reprocessed; 11 sources reused
-live answer UI: two Hadith searches grouped in one step above the answer; self-contained Hadith and Quran card styles, card copy, and full reload persistence passed
+live answer UI: two Hadith searches grouped in one step above the answer; redundant component/global Hadith and Quran card styles, card copy, and full reload persistence passed
 ```
 
 The original mandatory `[[cite:...]]` answer-marker gate was removed after live

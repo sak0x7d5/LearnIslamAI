@@ -32,8 +32,8 @@ first public release.
   correctly parented activity step above the final answer.
 - The Windows launcher now accepts an already-correct default-port origin
   allowlist while still generating exact origins for custom ports.
-- Source-card CSS is now carried by the trusted `AnswerView` component, with a
-  versioned global stylesheet URL, so tabs cannot mix new cards with stale styles.
+- Source-card CSS is carried by the trusted `AnswerView` component and mirrored
+  in a versioned global stylesheet, so either cached asset can be stale safely.
 
 ### Security
 
