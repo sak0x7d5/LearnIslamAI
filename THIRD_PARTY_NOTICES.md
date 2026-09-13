@@ -1,6 +1,6 @@
 # Third-party notices and corpus provenance
 
-Last audited: 2026-07-18
+Last audited: 2026-09-13 (provenance pin); rights review unchanged since 2026-07-18
 
 The MIT License in `LICENSE` applies to IslamAI's project-authored source code
 and documentation. It does not relicense third-party religious texts,
@@ -46,16 +46,16 @@ file](https://github.com/fawazahmed0/hadith-api/blob/1/References.md).
 
 | Local asset | Collection label in file | Records | Versioned upstream asset |
 | --- | --- | ---: | --- |
-| `eng-abudawud.json` | Sunan Abu Dawud | 5,274 | [source](https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-abudawud.json) |
-| `eng-bukhari.json` | Sahih al Bukhari | 7,589 | [source](https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari.json) |
-| `eng-dehlawi.json` | Forty Hadith of Shah Waliullah Dehlawi | 40 | [source](https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-dehlawi.json) |
-| `eng-ibnmajah.json` | Sunan Ibn Majah | 4,343 | [source](https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-ibnmajah.json) |
-| `eng-malik.json` | Muwatta Malik | 1,858 | [source](https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-malik.json) |
-| `eng-muslim.json` | Sahih Muslim | 7,563 | [source](https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-muslim.json) |
-| `eng-nasai.json` | Sunan an Nasai | 5,765 | [source](https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-nasai.json) |
-| `eng-nawawi.json` | Forty Hadith of an-Nawawi | 42 | [source](https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-nawawi.json) |
-| `eng-qudsi.json` | Forty Hadith Qudsi | 40 | [source](https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-qudsi.json) |
-| `eng-tirmidhi.json` | Jami At Tirmidhi | 3,998 | [source](https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-tirmidhi.json) |
+| `eng-abudawud.json` | Sunan Abu Dawud | 5,274 | [source](https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/eng-abudawud.json) |
+| `eng-bukhari.json` | Sahih al Bukhari | 7,589 | [source](https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/eng-bukhari.json) |
+| `eng-dehlawi.json` | Forty Hadith of Shah Waliullah Dehlawi | 40 | [source](https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/eng-dehlawi.json) |
+| `eng-ibnmajah.json` | Sunan Ibn Majah | 4,343 | [source](https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/eng-ibnmajah.json) |
+| `eng-malik.json` | Muwatta Malik | 1,858 | [source](https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/eng-malik.json) |
+| `eng-muslim.json` | Sahih Muslim | 7,563 | [source](https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/eng-muslim.json) |
+| `eng-nasai.json` | Sunan an Nasai | 5,765 | [source](https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/eng-nasai.json) |
+| `eng-nawawi.json` | Forty Hadith of an-Nawawi | 42 | [source](https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/eng-nawawi.json) |
+| `eng-qudsi.json` | Forty Hadith Qudsi | 40 | [source](https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/eng-qudsi.json) |
+| `eng-tirmidhi.json` | Jami At Tirmidhi | 3,998 | [source](https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/eng-tirmidhi.json) |
 
 Total: 36,512 source records. Of these, 36,097 contain nonblank text and are
 indexable; 415 upstream blank-text records are retained byte-for-byte in the
@@ -75,9 +75,12 @@ to a translator, publisher, authoritative source, and text-specific license.
 Even the two named English translations have no redistribution grant recorded
 there. Consequently, rights to the underlying English translations and any
 third-party grading text remain **unresolved for every listed edition**.
-The upstream reference `1` is versioned but has not yet been resolved and
-recorded as an immutable commit hash for this audit, which is an additional
-provenance blocker.
+Upstream reference `1` was resolved on 2026-09-13 to commit
+`df57907be35291c91ad6a6691180e22ca9920784`, and every bundled English edition
+was verified byte-for-byte against the `editions/` files at that commit; the
+table links above point at that revision, and `src/data/corpus-manifest.json`
+records it as each edition's source revision. Provenance is therefore fixed to
+an immutable upstream state; the rights questions above remain open.
 
 ## Surah-name lookup
 

@@ -49,7 +49,7 @@
       "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-abudawud.json",
       "source": {
         "repository": "https://github.com/fawazahmed0/hadith-api",
-        "revision": "1",
+        "revision": "df57907be35291c91ad6a6691180e22ca9920784",
         "attribution": "Sunan Abu Dawud English edition; translator listed as Unknown upstream"
       },
       "redistribution": {
@@ -67,7 +67,7 @@
       "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari.json",
       "source": {
         "repository": "https://github.com/fawazahmed0/hadith-api",
-        "revision": "1",
+        "revision": "df57907be35291c91ad6a6691180e22ca9920784",
         "attribution": "Sahih al Bukhari English edition; Muhsin Khan"
       },
       "redistribution": {
@@ -85,7 +85,7 @@
       "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-dehlawi.json",
       "source": {
         "repository": "https://github.com/fawazahmed0/hadith-api",
-        "revision": "1",
+        "revision": "df57907be35291c91ad6a6691180e22ca9920784",
         "attribution": "Forty Hadith of Shah Waliullah Dehlawi; Shah Waliullah Dehlawi"
       },
       "redistribution": {
@@ -103,7 +103,7 @@
       "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-ibnmajah.json",
       "source": {
         "repository": "https://github.com/fawazahmed0/hadith-api",
-        "revision": "1",
+        "revision": "df57907be35291c91ad6a6691180e22ca9920784",
         "attribution": "Sunan Ibn Majah English edition; translator listed as Unknown upstream"
       },
       "redistribution": {
@@ -121,7 +121,7 @@
       "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-malik.json",
       "source": {
         "repository": "https://github.com/fawazahmed0/hadith-api",
-        "revision": "1",
+        "revision": "df57907be35291c91ad6a6691180e22ca9920784",
         "attribution": "Muwatta Malik English edition; translator listed as Unknown upstream"
       },
       "redistribution": {
@@ -139,7 +139,7 @@
       "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-muslim.json",
       "source": {
         "repository": "https://github.com/fawazahmed0/hadith-api",
-        "revision": "1",
+        "revision": "df57907be35291c91ad6a6691180e22ca9920784",
         "attribution": "Sahih Muslim English edition; Abdul Hamid Siddiqui"
       },
       "redistribution": {
@@ -157,7 +157,7 @@
       "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-nasai.json",
       "source": {
         "repository": "https://github.com/fawazahmed0/hadith-api",
-        "revision": "1",
+        "revision": "df57907be35291c91ad6a6691180e22ca9920784",
         "attribution": "Sunan an Nasai English edition; translator listed as Unknown upstream"
       },
       "redistribution": {
@@ -175,7 +175,7 @@
       "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-nawawi.json",
       "source": {
         "repository": "https://github.com/fawazahmed0/hadith-api",
-        "revision": "1",
+        "revision": "df57907be35291c91ad6a6691180e22ca9920784",
         "attribution": "Forty Hadith of an-Nawawi; Imam Nawawi"
       },
       "redistribution": {
@@ -193,7 +193,7 @@
       "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-qudsi.json",
       "source": {
         "repository": "https://github.com/fawazahmed0/hadith-api",
-        "revision": "1",
+        "revision": "df57907be35291c91ad6a6691180e22ca9920784",
         "attribution": "Forty Hadith Qudsi English edition; translator listed as Unknown upstream"
       },
       "redistribution": {
@@ -211,7 +211,7 @@
       "download_url": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-tirmidhi.json",
       "source": {
         "repository": "https://github.com/fawazahmed0/hadith-api",
-        "revision": "1",
+        "revision": "df57907be35291c91ad6a6691180e22ca9920784",
         "attribution": "Jami At Tirmidhi English edition; translator listed as Unknown upstream"
       },
       "redistribution": {

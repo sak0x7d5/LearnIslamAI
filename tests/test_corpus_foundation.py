@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
+import re
 import time
 
 import numpy as np
@@ -51,6 +52,9 @@ def test_bundled_english_corpus_matches_immutable_manifest():
     )
     assert manifest.assets_of_kind("surah_names")[0].record_count == 114
     assert manifest.has_unresolved_rights is True
+    # Provenance must point at immutable commits, never movable branches or tags.
+    for asset in manifest.assets:
+        assert re.fullmatch(r"[0-9a-f]{40}", asset.source.revision), asset.path
 
     assert sorted(path.name for path in (DATA_ROOT / "hadith").iterdir()) == ["english"]
     assert sorted(path.name for path in (DATA_ROOT / "quran").iterdir()) == ["english", "metadata"]

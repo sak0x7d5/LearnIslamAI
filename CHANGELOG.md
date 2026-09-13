@@ -29,6 +29,9 @@ first public release.
 
 ### Changed
 
+- The ten English Hadith editions are now pinned to upstream commit
+  `df57907be352` of `fawazahmed0/hadith-api` instead of the mutable ref `1`,
+  after verifying each bundled file byte-for-byte against that commit.
 - Mutable models, indexes, history, and update state now live under
   `%LOCALAPPDATA%\IslamAI` by default.
 - Gemini defaults to the stable `gemini-3.1-flash-lite` model and graph creation
