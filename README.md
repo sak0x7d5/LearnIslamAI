@@ -5,9 +5,10 @@ local English corpus, sends the question and selected source excerpts to Google
 Gemini, and presents an answer with citations.
 
 > [!WARNING]
-> This repository is a pre-release v0.1 foundation. It is not approved for
-> public distribution yet because redistribution rights for the bundled English
-> translations have not been fully documented. See
+> This is a pre-release v0.1 foundation with no tagged release. The source code
+> is MIT-licensed, but redistribution rights for the bundled English
+> translations are still being documented, so treat the bundled corpus as
+> review-pending rather than cleared. See
 > [Third-party notices](THIRD_PARTY_NOTICES.md).
 
 IslamAI is an aid for finding source passages. It is **not a fatwa authority**,
