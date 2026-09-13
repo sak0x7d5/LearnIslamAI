@@ -67,8 +67,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install_windows.ps1 -Launc
 
 The launcher installs the locked end-user environment and opens IslamAI at
 <http://127.0.0.1:8000>. If that port is occupied by another local application,
-choose a free port; the launcher generates an exact loopback-only origin
-allowlist for that process, without a wildcard:
+the launcher moves to the next free port and prints the address it chose. To
+pin a specific port instead, pass `-Port`; an explicitly requested port that is
+busy fails rather than being silently replaced. Either way the launcher
+generates an exact loopback-only origin allowlist for that process, without a
+wildcard:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install_windows.ps1 -Launch -Port 8123

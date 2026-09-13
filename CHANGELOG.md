@@ -42,6 +42,10 @@ first public release.
 
 ### Fixed
 
+- When the default port is busy and `-Port` was not given (the double-click
+  launcher cannot pass one), the Windows launcher now scans upward for a free
+  loopback port and reports it, instead of failing. An explicit `-Port` that is
+  busy still fails loudly, and a running IslamAI on any probed port is reused.
 - Corpus manifest hashes are now computed from the canonical LF bytes Git stores,
   and `.gitattributes` exempts `src/data/` from end-of-line conversion. Previously
   eleven hashes matched only a Windows checkout with `core.autocrlf=true`, and the
