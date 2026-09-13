@@ -22,13 +22,19 @@ jobs:
     env:
       GOOGLE_API_KEY: ci-placeholder-not-used
       GEMINI_MODEL: gemini-3.1-flash-lite
-      # The runner context is not available in job-level env; github.workspace is.
-      ISLAMAI_HOME: ${{ github.workspace }}\.test-state\IslamAI
       PYTHONUTF8: "1"
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+
+      # Mutable app state must stay outside the repository (a test enforces it),
+      # and the runner context is only available inside steps, not job-level env.
+      - name: Point mutable app state at the runner temp directory
+        shell: pwsh
+        run: |
+          $appHome = Join-Path $env:RUNNER_TEMP "IslamAI"
+          "ISLAMAI_HOME=$appHome" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Install pinned uv and Python
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
