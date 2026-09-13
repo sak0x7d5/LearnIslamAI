@@ -21,6 +21,11 @@ first public release.
   missing or invalid display references never reject an answer.
 - Open-source project documentation, contribution policy, security policy,
   conduct policy, third-party notices, and a Windows CI definition.
+- Dark theme by default with a green-accented palette in `public/theme.json`,
+  a project logo, favicon, and assistant avatar in place of the Chainlit defaults,
+  a project-specific footer disclaimer, and page metadata that points at this
+  repository. The Windows launcher now ships the customized UI strings with the
+  per-launch runtime root.
 
 ### Changed
 

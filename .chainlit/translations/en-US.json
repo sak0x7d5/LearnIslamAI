@@ -132,7 +132,7 @@
             "title": "Settings panel",
             "customize": "Customize your chat settings here"
         },
-        "watermark": "LLMs can make mistakes. Check important info."
+        "watermark": "IslamAI can make mistakes. Verify citations in a trusted edition; this is not a fatwa authority."
     },
     "threadHistory": {
         "sidebar": {
