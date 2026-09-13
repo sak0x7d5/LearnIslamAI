@@ -22,6 +22,22 @@ def test_job_level_env_uses_only_job_scoped_contexts():
                 assert context not in STEP_ONLY_CONTEXTS, (job_name, key, value)
 
 
+def test_mutable_app_home_is_set_from_runner_temp_in_a_step():
+    """ISLAMAI_HOME must land outside the checkout, and only a step can read RUNNER_TEMP."""
+
+    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    job = workflow["jobs"]["test"]
+
+    assert "ISLAMAI_HOME" not in (job.get("env") or {})
+    setter = next(step for step in job["steps"] if "ISLAMAI_HOME=" in str(step.get("run", "")))
+    assert "RUNNER_TEMP" in setter["run"]
+    assert "GITHUB_ENV" in setter["run"]
+    assert "github.workspace" not in setter["run"]
+    assert job["steps"].index(setter) < next(
+        index for index, step in enumerate(job["steps"]) if step.get("name") == "Test"
+    )
+
+
 def test_workflow_gates_run_on_pull_requests_and_main():
     workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
     triggers = workflow[True] if True in workflow else workflow["on"]
