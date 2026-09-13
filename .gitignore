@@ -36,6 +36,7 @@ src/data/chat_history.db
 .verification-state/
 readiness-report.local.md
 
-# Personal
+# Personal notes and local AI-assistant state (never part of the release)
 TODO.md
 PROJECT_IDEAS.md
+.claude/
