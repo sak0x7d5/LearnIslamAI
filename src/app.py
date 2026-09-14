@@ -38,7 +38,7 @@ from core.message_utils import (
     extract_final_graph_answer,
     restore_conversation_messages,
 )
-from core.startup_status import StartupStatus
+from core.startup_status import StartupStatus, describe_failure
 from core.tool_steps import ToolStepPresenter
 
 
@@ -117,7 +117,7 @@ def _consume_task_result(task: asyncio.Task[Any]) -> None:
         logger.warning("Detached startup observer failed (%s).", type(exc).__name__)
         return
     if failure is not None:
-        logger.warning("Background knowledge-base setup failed (%s).", type(failure).__name__)
+        logger.warning("Background knowledge-base setup failed (%s).", describe_failure(failure))
 
 
 @cl.data_layer
@@ -378,8 +378,9 @@ async def _run_knowledge_base_bootstrap() -> Any:
     global _knowledge_base_ready
     try:
         report = await _knowledge_base.ensure_ready(_startup_status.record)
-    except Exception:
+    except Exception as exc:
         _startup_status.fail(
+            f"{describe_failure(exc)}\n\n"
             "The previous valid local corpus and indexes were retained. Restart the chat to retry."
         )
         raise
@@ -428,7 +429,7 @@ async def _follow_knowledge_base_task(task: asyncio.Task[Any]) -> bool:
     try:
         await asyncio.shield(task)
     except Exception as exc:
-        logger.error("Knowledge-base initialization failed (%s).", type(exc).__name__)
+        logger.error("Knowledge-base initialization failed (%s).", describe_failure(exc))
         await progress.fail()
         return False
 
@@ -465,7 +466,9 @@ async def _ensure_knowledge_base(*, interactive_retry: bool) -> bool:
                 try:
                     await asyncio.shield(task)
                 except Exception as exc:
-                    logger.error("Knowledge-base initialization failed (%s).", type(exc).__name__)
+                    logger.error(
+                        "Knowledge-base initialization failed (%s).", describe_failure(exc)
+                    )
                 else:
                     cl.user_session.set("knowledge_base_ready", True)
                     return True

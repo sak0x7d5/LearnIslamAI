@@ -45,6 +45,11 @@ first public release.
 
 ### Fixed
 
+- Corpus validation now hashes assets over CRLF-normalized bytes, so a
+  pre-existing checkout or an editor that converts line endings can no longer
+  fail first-run validation; a genuine content change still fails, and the
+  chat and terminal now name the offending file with a recovery hint instead
+  of a bare `CorpusManifestError`.
 - When the default port is busy and `-Port` was not given (the double-click
   launcher cannot pass one), the Windows launcher now scans upward for a free
   loopback port and reports it, instead of failing. An explicit `-Port` that is
