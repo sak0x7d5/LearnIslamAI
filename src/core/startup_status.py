@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from core.corpus_manifest import CorpusManifestError
 from core.knowledge_base import ProgressEvent
 
 
@@ -14,6 +15,19 @@ PHASE_LABELS = {
     "index_hadith": "Building the Hadith search index",
     "ready": "Local Quran and Hadith search is ready",
 }
+
+
+def describe_failure(exc: BaseException) -> str:
+    """Name a startup failure without leaking anything but the exception type.
+
+    Corpus manifest errors are the exception: their messages name only bundled
+    asset paths, hashes, and record counts, and a user cannot act on
+    "CorpusManifestError" alone.
+    """
+
+    if isinstance(exc, CorpusManifestError):
+        return f"{type(exc).__name__}: {exc}"
+    return type(exc).__name__
 
 
 @dataclass(frozen=True)

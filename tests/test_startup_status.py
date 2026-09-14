@@ -8,7 +8,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from core.knowledge_base import ProgressEvent  # noqa: E402
-from core.startup_status import StartupStatus  # noqa: E402
+from core.startup_status import StartupStatus, describe_failure  # noqa: E402
 
 
 def test_startup_status_replays_specific_progress_and_ready_state():
@@ -38,3 +38,25 @@ def test_startup_status_failure_is_safe_and_actionable():
 
     assert "failed safely" in rendered
     assert "last valid local corpus was retained" in rendered
+
+
+def test_describe_failure_names_only_corpus_manifest_details():
+    from core.corpus_manifest import CorpusManifestError
+
+    manifest_failure = CorpusManifestError("SHA-256 mismatch for quran/metadata/surah.json")
+    other_failure = RuntimeError("secret=abc123 must never appear")
+
+    assert describe_failure(manifest_failure) == (
+        "CorpusManifestError: SHA-256 mismatch for quran/metadata/surah.json"
+    )
+    assert describe_failure(other_failure) == "RuntimeError"
+
+
+def test_bootstrap_failure_surfaces_the_corpus_problem_in_chat():
+    app_source = (PROJECT_ROOT / "src" / "app.py").read_text(encoding="utf-8")
+
+    assert 'f"{describe_failure(exc)}' in app_source
+    assert (
+        "type(exc).__name__"
+        not in app_source.split("_run_knowledge_base_bootstrap")[1].split("async def")[0]
+    )

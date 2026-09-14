@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 import time
 
 import numpy as np
@@ -16,7 +17,13 @@ from langchain_core.embeddings import Embeddings
 
 import core.embedding_manager as embedding_module
 from core.coordinator import CorpusProcessingError, RAGCoordinator, SyncReport
-from core.corpus_manifest import CorpusManifest, CorpusManifestError, validate_corpus
+import core.corpus_manifest as corpus_manifest_module
+from core.corpus_manifest import (
+    CorpusManifest,
+    CorpusManifestError,
+    sha256_file,
+    validate_corpus,
+)
 from core.embedding_manager import EmbeddingManager
 from core.knowledge_base import (
     CorpusReleaseManager,
@@ -61,11 +68,11 @@ def test_bundled_english_corpus_matches_immutable_manifest():
 
 
 def test_corpus_assets_are_exempt_from_line_ending_conversion():
-    """Hash-verified assets must reach every checkout byte-for-byte.
+    """The repository keeps corpus assets in their canonical LF form.
 
-    Git for Windows defaults to core.autocrlf=true, which rewrites LF to CRLF on
-    checkout and breaks the SHA-256 validation of pretty-printed assets such as
-    the Surah-name lookup.
+    Validation tolerates CRLF (see test_line_ending_conversion_does_not_invalidate_
+    the_corpus), but Git for Windows defaults to core.autocrlf=true, and without
+    this rule a contributor's checkout would silently rewrite the files it commits.
     """
 
     attributes = (PROJECT_ROOT / ".gitattributes").read_text(encoding="utf-8").splitlines()
@@ -75,6 +82,54 @@ def test_corpus_assets_are_exempt_from_line_ending_conversion():
     manifest = CorpusManifest.load(CORPUS_MANIFEST)
     for asset in manifest.assets:
         assert bytes([13]) not in (DATA_ROOT / asset.path).read_bytes(), asset.path
+
+
+def _copy_corpus(destination: Path) -> Path:
+    shutil.copytree(DATA_ROOT, destination)
+    return destination
+
+
+def test_line_ending_conversion_does_not_invalidate_the_corpus(tmp_path):
+    """A checkout or editor that rewrites LF to CRLF must still validate."""
+
+    manifest = CorpusManifest.load(CORPUS_MANIFEST)
+    root = _copy_corpus(tmp_path / "data")
+    lf, crlf = bytes([10]), bytes([13, 10])
+    for asset in manifest.assets:
+        path = root / asset.path
+        converted = path.read_bytes().replace(lf, crlf)
+        assert crlf in converted, asset.path
+        path.write_bytes(converted)
+
+    validate_corpus(root, manifest)
+
+
+def test_content_change_still_fails_with_an_actionable_message(tmp_path):
+    manifest = CorpusManifest.load(CORPUS_MANIFEST)
+    root = _copy_corpus(tmp_path / "data")
+    surah = root / "quran/metadata/surah.json"
+    surah.write_bytes(surah.read_bytes().replace(b"Al-Fatihah", b"Al-Fatiha"))
+
+    with pytest.raises(CorpusManifestError) as failure:
+        validate_corpus(root, manifest)
+    message = str(failure.value)
+    assert "SHA-256 mismatch for quran/metadata/surah.json" in message
+    assert "git checkout -- src/data" in message
+
+
+def test_sha256_file_normalizes_a_crlf_split_across_read_blocks(tmp_path):
+    block = corpus_manifest_module._HASH_BLOCK_SIZE
+    cr, lf = bytes([13]), bytes([10])
+    normalized = b"x" * (block - 1) + lf + b"y" + lf
+    expected = hashlib.sha256(normalized).hexdigest()
+
+    split = tmp_path / "split.json"  # CR is the last byte of block one, LF starts block two
+    split.write_bytes(b"x" * (block - 1) + cr + lf + b"y" + cr + lf)
+    lone_cr = tmp_path / "lone.json"  # a CR with no LF after it is real content
+    lone_cr.write_bytes(b"x" * (block - 1) + cr)
+
+    assert sha256_file(split) == expected
+    assert sha256_file(lone_cr) == hashlib.sha256(b"x" * (block - 1) + cr).hexdigest()
 
 
 def test_quran_processor_reads_compact_schema_and_surah_names(tmp_path):

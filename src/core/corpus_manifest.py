@@ -172,11 +172,32 @@ class CorpusManifest:
         return any(asset.redistribution.status != "verified" for asset in self.assets)
 
 
+_HASH_BLOCK_SIZE = 1024 * 1024
+
+
 def sha256_file(path: Path) -> str:
+    """Return the SHA-256 of a corpus asset with CRLF line endings normalized to LF.
+
+    Assets are JSON, where a carriage return before a newline is insignificant
+    whitespace, so a checkout or editor that converts line endings must not
+    invalidate an otherwise identical file. Manifest hashes are recorded over
+    the LF form, which is also what Git stores.
+    """
+
     digest = hashlib.sha256()
+    pending_cr = False
     with Path(path).open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
+        for block in iter(lambda: handle.read(_HASH_BLOCK_SIZE), b""):
+            if pending_cr:
+                block = b"\r" + block
+                pending_cr = False
+            if block.endswith(b"\r"):
+                # Hold a trailing CR back until we know whether an LF follows it.
+                pending_cr = True
+                block = block[:-1]
+            digest.update(block.replace(b"\r\n", b"\n"))
+    if pending_cr:
+        digest.update(b"\r")
     return digest.hexdigest()
 
 
@@ -263,7 +284,9 @@ def validate_corpus(corpus_root: Path, manifest: CorpusManifest) -> None:
         actual_hash = sha256_file(path)
         if actual_hash != asset.sha256:
             raise CorpusManifestError(
-                f"SHA-256 mismatch for {asset.path}: expected {asset.sha256}, got {actual_hash}"
+                f"SHA-256 mismatch for {asset.path}: expected {asset.sha256}, got {actual_hash}. "
+                "The bundled file differs from the corpus manifest; restore it with "
+                "`git checkout -- src/data` from the project root or re-download the project."
             )
         counts = inspect_asset_records(path, asset.kind)
         if counts.total != asset.record_count:
