@@ -99,5 +99,9 @@ redistribution basis still require evidence before public release.
   source.
 - Google Gemini is a hosted third-party service. Users supply their own API key,
   and use is governed by Google's applicable terms and data practices.
+- OpenRouter is a hosted third-party routing service. Users supply their own API
+  key, and use is governed by OpenRouter's terms and by the terms of the upstream
+  model provider OpenRouter forwards each request to. Free-tier models frequently
+  permit the upstream provider to train on submitted data.
 
 This notice is a provenance audit, not legal advice.

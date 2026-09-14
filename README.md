@@ -1,8 +1,9 @@
 # IslamAI
 
 IslamAI is a local-first Quran and Hadith research assistant. It searches a
-local English corpus, sends the question and selected source excerpts to Google
-Gemini, and presents an answer with citations.
+local English corpus, sends the question and selected source excerpts to a
+hosted generation provider, and presents an answer with citations. Google
+Gemini and OpenRouter are supported.
 
 > [!WARNING]
 > This is a pre-release v0.1 foundation with no tagged release. The source code
@@ -23,7 +24,8 @@ for religious rulings or consequential decisions.
 - English-only corpus: 6,236 Quran verses and 36,512 source records across ten
   Hadith collections; 36,097 Hadith records contain retrievable text
 - CPU-only SentenceTransformers embeddings and CPU FAISS search
-- Google Gemini generation, defaulting to `gemini-3.1-flash-lite`
+- Hosted generation through Google Gemini (default `gemini-3.1-flash-lite`)
+  or OpenRouter, which also reaches OpenAI and any OpenAI-compatible endpoint
 - One compact, expandable search-activity row per answer, including repeated
   Quran and Hadith searches without nested tool cards
 - Application-rendered Quran and Hadith quotation cards with trusted source
@@ -39,8 +41,9 @@ of scope for v0.1.
 
 - 64-bit Windows 10 or Windows 11
 - Internet access for initial installation, the first embedding-model download,
-  approved corpus updates, and Gemini answers
-- A Google API key with access to the configured Gemini model
+  approved corpus updates, and generated answers
+- An API key for one supported provider: a Google API key with access to the
+  configured Gemini model, or an OpenRouter key and a tool-capable model
 - Enough free disk space for Python, CPU PyTorch, dependencies, the embedding
   model, and generated indexes
 
@@ -80,8 +83,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install_windows.ps1 -Launc
 
 On first use, IslamAI validates the bundled corpus, downloads the BGE embedding
 model if it is not cached, and builds local indexes while showing progress. A
-missing Google API key is requested as a password and saved only to the ignored
-root `.env` file after server-side validation.
+missing API key is requested as a password and saved only to the ignored root
+`.env` file after server-side validation.
 
 To install without launching:
 
@@ -103,13 +106,41 @@ Copy-Item .env.example .env
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
+| `ISLAMAI_LLM_PROVIDER` | `google` or `openrouter` | Detected from the key that is set |
 | `GOOGLE_API_KEY` | Google API key used for Gemini requests | Requested on first use |
 | `GEMINI_MODEL` | Gemini model name | `gemini-3.1-flash-lite` |
+| `OPENROUTER_API_KEY` | OpenRouter API key | Requested on first use |
+| `OPENROUTER_MODEL` | OpenRouter model id; **must support tool calling** | `meta-llama/llama-3.3-70b-instruct:free` |
+| `OPENROUTER_BASE_URL` | OpenAI-compatible endpoint; HTTPS only | `https://openrouter.ai/api/v1` |
 | `ISLAMAI_HOME` | Absolute application data root; set in the process environment before starting | `%LOCALAPPDATA%\IslamAI` |
 | `ISLAMAI_CORPUS_MANIFEST_URL` | Optional HTTPS corpus release-manifest endpoint | Update checks disabled |
 
 `CHAINLIT_AUTH_SECRET` is generated locally when absent. Do not commit `.env` or
 share its contents in logs or issue reports.
+
+### Choosing a provider
+
+Leave `ISLAMAI_LLM_PROVIDER` blank and IslamAI uses whichever key is configured.
+If both are set, Google is used. If neither is set, IslamAI asks for an
+OpenRouter key. Both keys can coexist in `.env`; switching providers erases
+neither.
+
+IslamAI answers by calling Quran and Hadith search tools, so **the model must
+support tool calling**. A model that cannot is rejected when the key is
+validated, rather than silently answering without citing any source. Free
+OpenRouter models come and go, so list the current tool-capable ones with:
+
+```bash
+curl -s https://openrouter.ai/api/v1/models \
+  | jq -r '.data[] | select(.id|endswith(":free"))
+           | select(.supported_parameters|index("tools")) | .id'
+```
+
+Do not set `OPENROUTER_MODEL` to `openrouter/auto`: it can route to a model
+without tool support. A cheap paid model is the stable choice.
+
+`OPENROUTER_BASE_URL` accepts any OpenAI-compatible endpoint, so pointing it at
+`https://api.openai.com/v1` with an OpenAI key uses OpenAI directly.
 
 `ISLAMAI_HOME` is needed by the bootstrap before `.env` is loaded. To relocate
 the managed runtime and application data, set it in PowerShell before launching:
@@ -139,8 +170,20 @@ rewriting sacred-source data.
 Corpus files, embeddings, FAISS indexes, and chat history remain local. The
 first model load contacts Hugging Face unless the model is already cached.
 When you ask a question, the question and retrieved source excerpts are sent to
-Google Gemini. Google handles that request under the terms and data practices
-of your account and API service.
+the configured generation provider. How far they travel depends on which one:
+
+- **Google Gemini** — one hop. The question and excerpts go to Google, handled
+  under the terms and data practices of your account and API service.
+- **OpenRouter** — two hops. They go to OpenRouter, and on to whichever upstream
+  model provider OpenRouter routes the request to. That upstream is a party you
+  did not choose directly, and free (`:free`) models commonly carry terms
+  permitting training on submitted data. Read a model's terms on its OpenRouter
+  page before selecting it. OpenRouter offers account-level data-policy
+  controls; IslamAI does not set them for you.
+
+If that second hop is not acceptable for the sources you are researching, use
+Gemini, or point `OPENROUTER_BASE_URL` at a provider you have a direct
+agreement with.
 
 Corpus update checks are disabled unless `ISLAMAI_CORPUS_MANIFEST_URL` points to
 an HTTPS release-manifest endpoint. When configured, IslamAI prompts before any
@@ -148,7 +191,7 @@ check and asks at most once per day. Choosing **Later**, allowing the prompt to
 time out, or leaving the endpoint unset makes no corpus-update network request.
 Accepted updates are downloaded to staging, validated, indexed, and activated
 atomically; the previous valid corpus/index remains available for rollback.
-Gemini still requires network access for answers.
+Generated answers still require network access.
 
 Default local paths:
 
@@ -176,8 +219,14 @@ IslamAI data. The project `.venv` remains in the repository checkout.
   detects and replaces incompatible project environments.
 - **The first search is slow:** first launch downloads the embedding model and
   builds CPU indexes. Later launches reuse the cache and validated indexes.
-- **Gemini rejects the key or model:** confirm `GOOGLE_API_KEY`, account access,
-  quota, and `GEMINI_MODEL`. Never paste the key into a public issue.
+- **The provider rejects the key or model:** confirm the key, account access,
+  and quota for the provider in use, and that the model name is correct. Never
+  paste the key into a public issue.
+- **"The model did not return a tool call":** the configured model cannot call
+  tools, so it cannot search the corpus. Set `OPENROUTER_MODEL` (or
+  `GEMINI_MODEL`) to a tool-capable model.
+- **OpenRouter reports no credit:** add credit, or set `OPENROUTER_MODEL` to a
+  free model that supports tool calling.
 - **The port is already in use:** if it is already IslamAI, open the displayed
   address instead of launching twice. Otherwise choose a free `-Port` value.
 - **An update fails:** IslamAI keeps the previous validated corpus and index.

@@ -6,7 +6,7 @@ source-grounded answer with citations.
 ## Before you ask
 
 - IslamAI searches local sources, then sends your question and selected excerpts
-  to Google Gemini.
+  to the configured LLM provider (Google Gemini or OpenRouter).
 - Search activity stays in one expandable row, while direct Quran and Hadith
   excerpts are shown in locally rendered source cards.
 - Verify citations in a trusted edition. AI output can be incomplete or wrong.

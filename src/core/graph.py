@@ -6,7 +6,6 @@ from typing import Annotated, Any, TypedDict
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool, tool
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from pydantic import SecretStr
@@ -17,8 +16,8 @@ from core.citations import (
     deduplicate_citations,
     format_tool_content,
 )
-from core.config import DEFAULT_LLM_MODEL
 from core.coordinator import RAGCoordinator
+from core.llm import Provider
 from core.source_manager import SourceManager
 
 
@@ -137,9 +136,10 @@ def build_graph(
     *,
     api_key: SecretStr,
     coordinator: RAGCoordinator,
-    model_name: str = DEFAULT_LLM_MODEL,
+    provider: Provider,
+    model_name: str,
 ):
-    """Build a session graph only after a validated Google API key is available."""
+    """Build a session graph only after a validated provider API key is available."""
     active_data_dir = coordinator.quran_dir.parents[1]
     tools = create_search_tools(
         coordinator,
@@ -149,11 +149,7 @@ def build_graph(
             allowed_roots=(active_data_dir,),
         ),
     )
-    llm = ChatGoogleGenerativeAI(
-        model=model_name,
-        temperature=0,
-        google_api_key=api_key,
-    )
+    llm = provider.build(model_name, api_key)
     chatbot = make_chatbot(llm.bind_tools(tools))
 
     builder = StateGraph(GraphState)

@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 45
 
     env:
+      ISLAMAI_LLM_PROVIDER: google
       GOOGLE_API_KEY: ci-placeholder-not-used
       GEMINI_MODEL: gemini-3.1-flash-lite
       PYTHONUTF8: "1"

@@ -38,4 +38,7 @@ vary with severity and maintainer availability.
 - The fixed local user is not network authentication.
 - Retrieved text and model output are untrusted content and must remain escaped.
 - `.env` contains secrets and must never be committed.
-- Questions and retrieved excerpts leave the machine when sent to Gemini.
+- Questions and retrieved excerpts leave the machine when sent to the
+  configured generation provider. With Google Gemini that is one hop, to
+  Google. With OpenRouter it is two: to OpenRouter, and on to whichever
+  upstream model provider OpenRouter routes the request to.

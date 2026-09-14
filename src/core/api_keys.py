@@ -92,18 +92,20 @@ class EnvFileService:
 
 
 class ApiKeyService:
-    """Own the Google key lifecycle without exposing its value to logs or UI props."""
+    """Own one provider's key lifecycle without exposing its value to logs or UI props."""
 
     def __init__(
         self,
         env_file: EnvFileService,
         validator: Callable[[SecretStr], Awaitable[ValidationResult]],
+        key_env: str = "GOOGLE_API_KEY",
     ):
         self.env_file = env_file
         self.validator = validator
+        self.key_env = key_env
 
     def read(self) -> SecretStr | None:
-        return self.env_file.read_secret("GOOGLE_API_KEY")
+        return self.env_file.read_secret(self.key_env)
 
     async def validate(self, key: SecretStr) -> ValidationResult:
         return await self.validator(key)
@@ -115,4 +117,4 @@ class ApiKeyService:
         return result
 
     def save(self, key: SecretStr) -> None:
-        self.env_file.upsert_secret("GOOGLE_API_KEY", key)
+        self.env_file.upsert_secret(self.key_env, key)

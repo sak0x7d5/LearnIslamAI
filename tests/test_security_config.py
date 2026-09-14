@@ -28,8 +28,14 @@ def test_custom_elements_do_not_render_raw_html_or_receive_source_paths():
 
     assert not (ROOT / "public" / "elements" / "CitationCard.jsx").exists()
     assert "props.apiKey" not in key_form
+    assert "props?.apiKey" not in key_form
     assert "submitElement({ apiKey: value })" in key_form
     assert 'type={show ? "text" : "password"}' in key_form
+    # Provider-neutral: the label comes from a prop, never a baked-in vendor name.
+    assert "props?.provider" in key_form
+    assert "props?.placeholder" in key_form
+    assert "Google Gemini" not in key_form
+    assert 'rel="noreferrer noopener"' in key_form
     assert "dangerouslySetInnerHTML" not in answer_view
     assert "<Markdown allowHtml={false} renderMarkdown={true}>" in answer_view
 
@@ -56,6 +62,41 @@ def test_graph_prompt_allows_only_semantic_source_tags():
     assert "[[cite:" not in graph_source
     assert "make_validation_node" not in graph_source
     assert "gemini-3.1-flash-lite-preview" not in graph_source
+
+
+def test_graph_holds_no_provider_specific_code():
+    """Provider choice lives in core.llm so graph.py stays vendor-neutral."""
+
+    graph_source = (ROOT / "src" / "core" / "graph.py").read_text(encoding="utf-8")
+
+    assert "ChatGoogleGenerativeAI" not in graph_source
+    assert "langchain_openai" not in graph_source
+    assert "gemini" not in graph_source.lower()
+
+
+def test_provider_sdks_are_not_imported_at_module_scope():
+    """Lazy SDK imports keep core.llm importable without every provider installed."""
+
+    tree = ast.parse((ROOT / "src" / "core" / "llm.py").read_text(encoding="utf-8"))
+    top_level: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            top_level.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            top_level.add(node.module)
+
+    assert "langchain_google_genai" not in top_level
+    assert "langchain_openai" not in top_level
+
+
+def test_key_validation_probe_is_bounded_and_forces_a_tool_call():
+    """A model that cannot call tools must be rejected before it can answer."""
+
+    llm_source = (ROOT / "src" / "core" / "llm.py").read_text(encoding="utf-8")
+
+    assert "asyncio.wait_for" in llm_source
+    assert 'tool_choice="any"' in llm_source
+    assert "PROBE_TIMEOUT_SECONDS" in llm_source
 
 
 def _function_node(source: str, function_name: str) -> ast.FunctionDef | ast.AsyncFunctionDef:
@@ -108,20 +149,21 @@ def test_api_key_form_waits_for_a_real_user_message():
 
     assert "_ensure_knowledge_base" in chat_start_calls
     assert "_ensure_runtime" not in chat_start_calls
-    assert "_ensure_google_key" not in chat_start_calls
+    assert "_ensure_provider_key" not in chat_start_calls
     assert isinstance(interactive_retry, ast.Constant) and interactive_retry.value is False
     assert "_maybe_check_corpus_update" not in knowledge_base_calls
-    assert "_ensure_google_key" not in knowledge_base_calls
+    assert "_ensure_provider_key" not in knowledge_base_calls
     assert "_maybe_check_corpus_update" in runtime_calls
-    assert "_ensure_google_key" in runtime_calls
+    assert "_ensure_provider_key" in runtime_calls
     assert "_ensure_runtime" in message_calls
     assert "create_task" in resume_calls
     assert "_resume_knowledge_base_observer" in resume_calls
     assert "_ensure_knowledge_base" in resume_observer_calls
     assert "_ensure_runtime" not in resume_calls
-    assert "Validating your Gemini API key with Google" in app_source
-    assert "Validating the saved Gemini API key with Google" in app_source
-    assert "asyncio.wait_for" in app_source
+    assert "VALIDATING_NEW_KEY" in app_source
+    assert "VALIDATING_SAVED_KEY" in app_source
+    assert "_provider.label" in app_source
+    assert "Gemini" not in app_source
 
     runtime_lock = next(
         node

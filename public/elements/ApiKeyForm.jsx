@@ -6,6 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, KeyRound } from "lucide-react";
 
 export default function ApiKeyForm() {
+  const provider = props?.provider ?? "LLM provider";
+  const placeholder = props?.placeholder ?? "Enter your API key";
+  const consoleUrl = props?.consoleUrl ?? "";
+  const envVar = props?.envVar ?? "the API key";
   const [apiKey, setApiKey] = useState("");
   const [show, setShow] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -26,17 +30,17 @@ export default function ApiKeyForm() {
     <Card className="mt-3 w-full max-w-xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <KeyRound className="h-4 w-4" /> Google Gemini API key
+          <KeyRound className="h-4 w-4" /> {provider} API key
         </CardTitle>
         <CardDescription>
-          The key is validated by the local IslamAI server and saved only in the ignored root .env file.
+          The key is validated by the local IslamAI server and saved only as {envVar} in the ignored root .env file.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Label htmlFor="google-api-key">API key</Label>
+        <Label htmlFor="provider-api-key">API key</Label>
         <div className="mt-2 flex gap-2">
           <Input
-            id="google-api-key"
+            id="provider-api-key"
             type={show ? "text" : "password"}
             value={apiKey}
             autoComplete="off"
@@ -45,7 +49,7 @@ export default function ApiKeyForm() {
             onKeyDown={(event) => {
               if (event.key === "Enter") submit();
             }}
-            placeholder="Enter your Google API key"
+            placeholder={placeholder}
           />
           <Button
             type="button"
@@ -58,7 +62,19 @@ export default function ApiKeyForm() {
           </Button>
         </div>
       </CardContent>
-      <CardFooter className="justify-end">
+      <CardFooter className="justify-between">
+        {consoleUrl ? (
+          <a
+            className="text-sm underline"
+            href={consoleUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            Get a key
+          </a>
+        ) : (
+          <span />
+        )}
         <Button disabled={!apiKey.trim() || submitting} onClick={submit}>
           {submitting ? "Validating…" : "Validate and save"}
         </Button>

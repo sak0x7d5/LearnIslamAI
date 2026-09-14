@@ -1,8 +1,8 @@
 # Contributing to IslamAI
 
 Thank you for helping make IslamAI safer and more useful. v0.1 is deliberately
-narrow: Windows, English sources, localhost, CPU retrieval, and Gemini
-generation. Discuss broad scope changes before implementing them.
+narrow: Windows, English sources, localhost, CPU retrieval, and hosted
+generation through one configured provider. Discuss broad scope changes before implementing them.
 
 ## Before opening a change
 

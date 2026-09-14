@@ -9,17 +9,15 @@ import chainlit as cl
 import chainlit.config as chainlit_config
 from chainlit.utils import utc_now
 from langchain_core.messages import AIMessage, HumanMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import SecretStr
 
 from core.answer_rendering import render_semantic_answer
-from core.api_keys import ApiKeyService, EnvFileService, ValidationResult
+from core.api_keys import ApiKeyService, EnvFileService
 from core.config import (
     CORPUS_UPDATE_MANIFEST_URL,
     CHAINLIT_FILES_DIR,
     DB_PATH,
     DB_URL,
-    DEFAULT_LLM_MODEL,
     ROOT_DIR,
     logger,
 )
@@ -34,6 +32,7 @@ from core.knowledge_base import (
     UpdateStatus,
     build_staged_indexes,
 )
+from core.llm import make_key_validator, resolve_model, resolve_provider
 from core.message_utils import (
     extract_final_graph_answer,
     restore_conversation_messages,
@@ -43,6 +42,12 @@ from core.tool_steps import ToolStepPresenter
 
 
 _env_file = EnvFileService(ROOT_DIR / ".env")
+_provider = resolve_provider(_env_file.read_secret)
+_model_name = resolve_model(_provider)
+
+# Hoisted so a copy edit cannot silently drop the provider label.
+VALIDATING_NEW_KEY = "Validating your {label} API key\u2026"
+VALIDATING_SAVED_KEY = "Validating the saved {label} API key\u2026"
 
 
 def ensure_auth_secret() -> str:
@@ -55,39 +60,12 @@ def ensure_auth_secret() -> str:
     return value
 
 
-async def validate_google_api_key(key: SecretStr) -> ValidationResult:
-    """Make a minimal request and return only non-secret diagnostic text."""
-    try:
-        model = ChatGoogleGenerativeAI(
-            model=DEFAULT_LLM_MODEL,
-            temperature=0,
-            google_api_key=key,
-            max_retries=0,
-        )
-        await asyncio.wait_for(
-            model.ainvoke([HumanMessage(content="Reply with the single word OK.")]),
-            timeout=30,
-        )
-        return ValidationResult("valid", "Google API key validated.")
-    except Exception as exc:  # provider exception types vary between SDK releases
-        status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
-        safe_type = type(exc).__name__
-        normalized = str(status_code).lower() if status_code is not None else ""
-        if normalized in {"400", "401", "403", "unauthenticated", "permission_denied"}:
-            return ValidationResult("invalid", "Google rejected this API key.")
-        logger.warning("Google API-key validation was unavailable (%s).", safe_type)
-        return ValidationResult(
-            "unavailable",
-            "The key could not be validated because Google was unavailable. Check the network and try again.",
-        )
-
-
 ensure_auth_secret()
 initialize_database(str(DB_PATH))
 CHAINLIT_FILES_DIR.mkdir(parents=True, exist_ok=True)
 chainlit_config.FILES_DIRECTORY = CHAINLIT_FILES_DIR
 
-_api_keys = ApiKeyService(_env_file, validate_google_api_key)
+_api_keys = ApiKeyService(_env_file, make_key_validator(_provider, _model_name), _provider.key_env)
 _knowledge_base = KnowledgeBaseService()
 _knowledge_base_task_lock = asyncio.Lock()
 _corpus_update_flow_lock = asyncio.Lock()
@@ -230,15 +208,20 @@ class UpdateProgress:
         await self.task_list.update()
 
 
-async def _request_google_key() -> SecretStr | None:
+async def _request_provider_key() -> SecretStr | None:
     for _ in range(3):
         prompt = _internal(
             cl.AskElementMessage(
-                content="A Google Gemini API key is required to answer this question.",
+                content=f"A {_provider.label} API key is required to answer this question.",
                 element=cl.CustomElement(
                     name="ApiKeyForm",
                     display="inline",
-                    props={"purpose": "Gemini answer generation"},
+                    props={
+                        "provider": _provider.label,
+                        "placeholder": _provider.key_placeholder,
+                        "consoleUrl": _provider.console_url,
+                        "envVar": _provider.key_env,
+                    },
                 ),
                 timeout=300,
                 raise_on_timeout=False,
@@ -254,11 +237,11 @@ async def _request_google_key() -> SecretStr | None:
             continue
         key = SecretStr(raw_key.strip())
         del raw_key
-        prompt.content = "Validating your Gemini API key with Google…"
+        prompt.content = VALIDATING_NEW_KEY.format(label=_provider.label)
         await prompt.update()
         result = await _api_keys.validate_and_save(key)
         if result.is_valid:
-            prompt.content = "Google API key validated and saved locally."
+            prompt.content = f"{_provider.label} API key validated and saved locally."
             await prompt.update()
             return key
         prompt.content = result.message
@@ -268,19 +251,19 @@ async def _request_google_key() -> SecretStr | None:
     return None
 
 
-async def _ensure_google_key() -> SecretStr | None:
+async def _ensure_provider_key() -> SecretStr | None:
     global _validated_key
     if _validated_key is not None:
         return _validated_key
     existing = _api_keys.read()
     if existing is not None:
         status_message = _internal(
-            cl.Message(content="Validating the saved Gemini API key with Google…")
+            cl.Message(content=VALIDATING_SAVED_KEY.format(label=_provider.label))
         )
         await status_message.send()
         result = await _api_keys.validate(existing)
         if result.is_valid:
-            status_message.content = "Saved Gemini API key validated."
+            status_message.content = f"Saved {_provider.label} API key validated."
             await status_message.update()
             _validated_key = existing
             return existing
@@ -288,7 +271,7 @@ async def _ensure_google_key() -> SecretStr | None:
         await status_message.update()
         if result.status == "unavailable":
             return None
-    _validated_key = await _request_google_key()
+    _validated_key = await _request_provider_key()
     return _validated_key
 
 
@@ -513,7 +496,7 @@ async def _ensure_runtime() -> bool:
             cl.user_session.set("runtime_ready", False)
             return False
 
-    key = await _ensure_google_key()
+    key = await _ensure_provider_key()
     if key is None:
         cl.user_session.set("runtime_ready", False)
         return False
@@ -523,7 +506,8 @@ async def _ensure_runtime() -> bool:
             _runtime_graph = build_graph(
                 api_key=key,
                 coordinator=_knowledge_base.coordinator,
-                model_name=DEFAULT_LLM_MODEL,
+                provider=_provider,
+                model_name=_model_name,
             )
     cl.user_session.set("runtime_ready", True)
     return True
@@ -587,8 +571,8 @@ async def on_message(message: cl.Message):
         await _internal(
             cl.Message(
                 content=(
-                    "IslamAI cannot answer yet. Retry when the Gemini key or local corpus issue "
-                    "is resolved."
+                    f"IslamAI cannot answer yet. Retry when the {_provider.label} key or "
+                    "local corpus issue is resolved."
                 )
             )
         ).send()

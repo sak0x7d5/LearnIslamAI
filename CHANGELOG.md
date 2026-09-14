@@ -19,6 +19,15 @@ first public release.
 - A compact per-answer search activity that groups repeated and mixed retrieval calls.
 - Normal partial quotations no longer depend on brittle machine-only citation markers;
   missing or invalid display references never reject an answer.
+- Selectable generation provider. A provider registry in `src/core/llm.py`
+  supports Google Gemini and OpenRouter, the latter reaching OpenAI and any
+  OpenAI-compatible endpoint through `OPENROUTER_BASE_URL`. The provider is
+  detected from whichever API key is configured, or set explicitly with
+  `ISLAMAI_LLM_PROVIDER`. Both provider keys can coexist in `.env`.
+- API-key validation now confirms the configured model can actually call tools,
+  and refuses one that cannot. IslamAI answers only from records returned by the
+  search tools, so a model without tool calling would otherwise produce fluent
+  answers citing no source at all.
 - Open-source project documentation, contribution policy, security policy,
   conduct policy, third-party notices, and a Windows CI definition.
 - Dark theme by default with a green-accented palette in `public/theme.json`,
@@ -34,8 +43,16 @@ first public release.
   after verifying each bundled file byte-for-byte against that commit.
 - Mutable models, indexes, history, and update state now live under
   `%LOCALAPPDATA%\IslamAI` by default.
-- Gemini defaults to the stable `gemini-3.1-flash-lite` model and graph creation
-  is deferred until a validated API key is available.
+- Gemini remains the default provider when its key is present, still on the
+  stable `gemini-3.1-flash-lite` model, and graph creation is still deferred
+  until a validated API key is available.
+- Key-validation failures are classified per provider rather than by one shared
+  status set, because Gemini answers 400 for a malformed key while OpenRouter
+  answers 400 for an unusable model. Missing credit, an unknown model, and a
+  model without tool support no longer re-prompt for a different API key, which
+  could never have fixed them.
+- The API-key form and its surrounding copy are provider-neutral and name the
+  provider in use.
 - Repeated search tool calls render as ordered entries inside one collapsed,
   correctly parented activity step above the final answer.
 - The Windows launcher now accepts an already-correct default-port origin

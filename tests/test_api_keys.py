@@ -91,3 +91,23 @@ def test_rejected_and_unavailable_keys_are_never_saved(tmp_path, monkeypatch):
 
     assert unavailable_result.status == "unavailable"
     assert not env_path.exists()
+
+
+def test_switching_providers_keeps_the_other_key(tmp_path, monkeypatch):
+    """Both provider keys must be able to coexist in one .env file."""
+
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    env_path = tmp_path / ".env"
+    env_path.write_text("GOOGLE_API_KEY=google-key\n", encoding="utf-8")
+
+    async def accept(_secret: SecretStr) -> ValidationResult:
+        return ValidationResult("valid", "ok")
+
+    service = ApiKeyService(EnvFileService(env_path), accept, "OPENROUTER_API_KEY")
+    asyncio.run(service.validate_and_save(SecretStr("router-key")))
+
+    stored = env_path.read_text(encoding="utf-8")
+    assert "GOOGLE_API_KEY=google-key" in stored
+    assert "OPENROUTER_API_KEY=router-key" in stored
+    assert service.read().get_secret_value() == "router-key"

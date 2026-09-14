@@ -71,7 +71,7 @@ live answer UI: two Hadith searches grouped in one step above the answer; redund
 
 The original mandatory `[[cite:...]]` answer-marker gate was removed after live
 testing because it rejected useful answers solely for formatting differences.
-Gemini may now wrap a direct partial quotation in a compact Quran or Hadith tag
+The generation model may now wrap a direct partial quotation in a compact Quran or Hadith tag
 with an optional retrieved reference. The answer is always retained: only a
 normalized same-kind current-run excerpt match adds trusted collection, locator, and
 grading metadata. Missing, malformed, ambiguous, or mismatched references simply

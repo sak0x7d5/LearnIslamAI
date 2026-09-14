@@ -22,6 +22,7 @@ dependencies = [
     "langchain-core==1.2.24",
     "langchain-google-genai==4.2.1",
     "langchain-huggingface==1.2.1",
+    "langchain-openai==1.1.12",
     "langchain-text-splitters==1.1.1",
     "langgraph==1.1.4",
     "langgraph-prebuilt==1.0.8",

@@ -87,5 +87,12 @@ DEFAULT_MODEL_KWARGS: dict[str, Any] = {"device": "cpu"}
 DEFAULT_ENCODE_KWARGS: dict[str, Any] = {"normalize_embeddings": True}
 DEFAULT_MODEL_INSTRUCTION = "Represent this sentence for searching relevant passages: "
 DEFAULT_EMBEDDING_DIMENSION = 384
-DEFAULT_LLM_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
+DEFAULT_GOOGLE_MODEL = "gemini-3.1-flash-lite"
+# OpenRouter's free lineup rotates. This default is a starting point, not a
+# guarantee; the model must support tool calling or IslamAI cannot search.
+DEFAULT_OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+LLM_PROVIDER_ID = os.environ.get("ISLAMAI_LLM_PROVIDER", "").strip().lower()
+# Any OpenAI-compatible endpoint works here, including native OpenAI at
+# https://api.openai.com/v1. HTTPS is enforced before a key is ever sent.
+OPENROUTER_BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip()
 CORPUS_UPDATE_MANIFEST_URL = os.environ.get("ISLAMAI_CORPUS_MANIFEST_URL", "").strip()
