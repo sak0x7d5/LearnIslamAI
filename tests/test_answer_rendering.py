@@ -61,6 +61,50 @@ def test_preserves_order_and_builds_trusted_tag_free_fallback():
     assert r"Sahih al\-Bukhari · Hadith 1 · Sahih" in rendered["fallback_markdown"]
 
 
+@pytest.mark.parametrize(
+    "marker",
+    ["-", "*", "+", "1.", "2)", ">", "> -", "  -"],
+)
+def test_marker_that_only_introduced_a_card_leaves_no_empty_bullet(marker: str):
+    answer = (
+        "The sources teach both principles.\n\n"
+        f"{marker} <quran>Allah\u2014there is no deity except Him.</quran>\n"
+        f"{marker} <hadith>Actions are judged by intentions.</hadith>"
+    )
+
+    rendered = render_semantic_answer(answer, [QURAN, HADITH])
+
+    assert [block["kind"] for block in rendered["blocks"]] == [
+        "markdown",
+        "quran",
+        "hadith",
+    ]
+    assert rendered["blocks"][0]["text"] == "The sources teach both principles."
+    # A bare ``>`` is the quote renderer's own separator, so only list markers
+    # can be judged orphaned by scanning the fallback.
+    assert not [
+        line
+        for line in rendered["fallback_markdown"].splitlines()
+        if line.strip() in {"-", "*", "+", "1.", "2)"}
+    ]
+
+
+def test_text_before_a_card_survives_marker_cleanup():
+    answer = (
+        "Prose.\n\n"
+        "---\n\n"
+        "- Divine ownership: <quran>Allah\u2014there is no deity except Him.</quran>\n"
+        "As reported, <hadith>Actions are judged by intentions.</hadith>"
+    )
+
+    rendered = render_semantic_answer(answer, [QURAN, HADITH])
+
+    assert [block["text"] for block in rendered["blocks"] if block["kind"] == "markdown"] == [
+        "Prose.\n\n---\n\n- Divine ownership:",
+        "As reported,",
+    ]
+
+
 def test_ref_must_match_kind_and_normalized_partial_excerpt():
     answer = '<hadith ref="Q-2-255">“ACTIONS” are judged by intentions!</hadith>'
 

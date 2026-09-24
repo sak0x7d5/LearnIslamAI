@@ -45,6 +45,7 @@ _OPEN_TAG = re.compile(
 _CLOSE_TAG = re.compile(r"</(?P<kind>quran|hadith)\s*>")
 _SEMANTIC_TAG = re.compile(r"</?(?:quran|hadith)\b[^<>]*>", re.IGNORECASE)
 _MARKDOWN_LITERAL = re.compile(r"([\\`*_[\]{}()#+.!|>~-])")
+_CARD_SCAFFOLD_LINE = re.compile(r"[ \t]*(?:>[ \t]*)*(?:[-*+]|\d{1,9}[.)])?[ \t]*")
 
 
 def _normalize_for_match(value: str) -> str:
@@ -121,6 +122,19 @@ def _match_citation(
     return matches[0] if len(matches) == 1 else None
 
 
+def _without_dangling_scaffold(text: str) -> str:
+    """Drop a trailing list or quote marker that only introduced a card.
+
+    Models routinely give each excerpt its own list item. A card is lifted out
+    of the list into a block of its own, so the marker that introduced it would
+    otherwise be left behind alone and render as an empty bullet.
+    """
+    head, separator, last_line = text.rpartition("\n")
+    if not _CARD_SCAFFOLD_LINE.fullmatch(last_line):
+        return text
+    return head if separator else ""
+
+
 def _markdown_block(text: str) -> AnswerBlock | None:
     safe_text = escape_model_markdown(text).strip()
     if not safe_text:
@@ -152,7 +166,7 @@ def _parse_blocks(
         if opening is not None:
             if active is not None:
                 return None
-            prose = _markdown_block(text[cursor : token_match.start()])
+            prose = _markdown_block(_without_dangling_scaffold(text[cursor : token_match.start()]))
             if prose is not None:
                 blocks.append(prose)
             reference = opening.group("double_ref")

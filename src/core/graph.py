@@ -38,6 +38,8 @@ Answer behavior:
   <hadith ref="SOURCE_ID">...</hadith>. The ref is optional; omit it if unsure.
 - Use the exact Reference value supplied by the search tool. Do not put source tags inside
   each other, and do not emit any other HTML.
+- Put each source tag on its own line as a standalone block, never inside a list item,
+  heading, table, or blockquote. They already render as their own cards.
 - Attribute other source-dependent claims in ordinary Markdown when useful.
 - Do not expose file paths or internal metadata.
 - If the retrieved records do not support an answer, say so plainly.
